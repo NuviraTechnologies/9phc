@@ -41,10 +41,18 @@ Peer-reviewed sources and primary records only. A claim is Verified or Corrected
 - Claim extraction and report structure: Muse Spark (Meta Model API), structured output.
 - Adversarial pass and source-fidelity reads: Muse Wonder (Meta Model API), fresh context per audit.
 - Checks 7 and 8: plain deterministic code.
-- Source retrieval: citations are resolved against the Crossref and DataCite registries (Open Library for books) BEFORE any model judges them — existence is a registry fact, not a model's memory. A code-level title-match gate keeps junk search hits out of the evidence, and registry abstracts are fed to the fidelity check as the source's own words.
+- Source retrieval: citations are resolved against the Crossref and DataCite registries (Open Library for books) BEFORE any model judges them — existence is a registry fact, not a model's memory. A code-level title-match gate keeps junk search hits out of the evidence, and registry abstracts are fed to the fidelity check as the source's own words. The alias sweep (check 3) searches the same registries under every other name the subject carries, and the secondary sweep (check 5) reads two independent citation graphs — OpenAlex and Semantic Scholar — for the later works citing each source. A registry that cannot be reached is reported as unreached, never read as empty.
 
 ## Built to fail honestly
 
 A timed-out or failed model call never kills a run: the affected check reports unsettled and the claim degrades to Held, with the endpoint named. Long documents are chunked on paragraph boundaries so nothing is silently truncated; duplicate claims are removed before counting, so the confidence rating counts each claim once; a chunk that fails extraction stops the run loudly rather than auditing half a document in silence.
+
+## Call it from your own AI
+
+9 PHC is a separate program on purpose: your AI writes at full speed, then calls the audit and gets findings back. Nothing is baked into generation, so nothing slows generation down. The audit ships as a command-line program and as an agent tool (`run_9phc_audit`) that any AI system can invoke — hand it a finished draft, get back the verdict report and structured findings. The tool definition is in `docs/agent-tool-schema.json`; wiring notes are in `docs/integration.md`.
+
+## License
+
+Open source, MIT License (see `LICENSE`). Anybody may use it: run your AI's research through the checker before the work carries your name.
 
 Built for the Meta Global AI Developer Hackathon (Oct 26 – Nov 4, 2026), Indie track.

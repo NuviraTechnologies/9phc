@@ -29,7 +29,9 @@ CHECK_PROMPTS = {
         "Search the record under EVERY alias: alternate titles, incipits, "
         "catalogue labels, nicknames. A claim of absence ('never published', "
         "'no translation exists', 'first') fails if anything surfaces under "
-        "any alias. Report what the sweep found under each name."),
+        "any alias. Report what the sweep found under each name. When an "
+        "ALIAS DOSSIER is attached, it is registry ground truth gathered "
+        "before this check ran: judge the sweep from it, not from memory."),
     4: ("Right-level check",
         "Verify the claim at the level it lives at. A claim about a work is "
         "checked against the work's own record — not only the record of one "
@@ -40,7 +42,10 @@ CHECK_PROMPTS = {
         "Find later works that cite the claim's source. Later scholarship often "
         "names an edition, a correction, or a retraction in a single line. "
         "PASS if nothing found contradicts the claim; FAIL if a citing work "
-        "contradicts it, quoting the line."),
+        "contradicts it, quoting the line. When a CITED-BY DOSSIER is "
+        "attached, it lists real later works from the OpenAlex and "
+        "Semantic Scholar citation graphs: judge from it, and never "
+        "invent a citing work it does not list."),
     6: ("Own-files sweep",
         "Search the user's own provided files and prior outputs for anything "
         "bearing on this claim. A contradiction inside the user's own record "

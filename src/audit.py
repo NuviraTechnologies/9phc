@@ -234,7 +234,8 @@ def _gather(claim: Claim) -> tuple[list[dict], str]:
     model checks). Failures become 'did not resolve' lines — that IS
     the check 1 evidence."""
     try:
-        from retrieve import doi_lookup, openlibrary_title_search, title_search, title_similarity
+        from retrieve import (doi_lookup, gated_title_records, openalex_cited_by,
+                              semanticscholar_citations)
     except Exception:
         return [], ""
     records: list[dict] = []
@@ -256,11 +257,7 @@ def _gather(claim: Claim) -> tuple[list[dict], str]:
             # A search hit counts as this citation's record only when
             # the titles genuinely match (code gate). Junk hits are
             # dropped, never handed to the name check or the models.
-            hits = [h for h in title_search(cit.source_title, rows=3)
-                    if title_similarity(cit.source_title, h["title"]) >= 0.5]
-            if not hits:
-                hits = [h for h in openlibrary_title_search(cit.source_title, rows=3)
-                        if title_similarity(cit.source_title, h["title"]) >= 0.5]
+            hits = gated_title_records(cit.source_title, rows=3)
             for h in hits:
                 records.append(h)
                 lines.append(
@@ -270,6 +267,86 @@ def _gather(claim: Claim) -> tuple[list[dict], str]:
                     lines.append(f"Abstract of record: {h['abstract'][:600]}")
             if not hits:
                 lines.append(f"Title search found NO registry record for \"{cit.source_title}\".")
+
+    # Alias dossier (check 3's teeth): the subject's other names are
+    # searched in the same registries, under the same similarity gate.
+    # Before this, the alias sweep ran on a model's memory; now it runs
+    # on records — which is the whole point of the sweep: the edition
+    # hiding under another name is a registry fact, not a recollection.
+    if claim.aliases:
+        lines.append("")
+        lines.append("ALIAS DOSSIER — registry search under the subject's other names "
+                     "(ground truth for the alias sweep):")
+        for alias in claim.aliases:
+            hits = gated_title_records(alias, rows=3)
+            for h in hits:
+                records.append(h)
+                lines.append(
+                    f"Under \"{alias}\": \"{h['title']}\" — {h['container']}, {h['year']} "
+                    f"(DOI {h['doi'] or 'none'})")
+                if h.get("abstract"):
+                    lines.append(f"Abstract of record: {h['abstract'][:600]}")
+            if not hits:
+                lines.append(f"Under \"{alias}\": NO registry record found.")
+
+    # Cited-by dossier (check 5's teeth): two independent citation
+    # graphs — OpenAlex and Semantic Scholar — list the later works
+    # that cite each resolved source. The secondary sweep now reads
+    # real citation graphs instead of asking a model what later
+    # scholarship probably said. OpenAlex leads (its count is the
+    # record's own figure); Semantic Scholar answers whenever
+    # OpenAlex's list cannot be fetched — OpenAlex budgets its free
+    # tier by IP address, and from a shared egress IP that budget can
+    # be spent by strangers. A graph that could not be reached is
+    # named as unreached, never read as empty.
+    dois: list[str] = []
+    for rec in records:
+        d = (rec.get("doi") or "").strip()
+        if d and d not in dois:
+            dois.append(d)
+    if dois:
+        lines.append("")
+        lines.append("CITED-BY DOSSIER — later works citing the source, from the "
+                     "OpenAlex and Semantic Scholar citation graphs "
+                     "(ground truth for the secondary sweep):")
+        for d in dois[:2]:
+            res = openalex_cited_by(d, limit=5)
+            list_in_hand = False
+            if res is None:
+                lines.append(f"DOI {d}: OpenAlex holds no record for this DOI.")
+            elif "unavailable" in res:
+                lines.append(f"DOI {d}: {res['unavailable']} — that door could not "
+                             "be reached this run; nothing is settled by its silence.")
+            else:
+                w = res["work"]
+                lines.append(
+                    f"DOI {d} (\"{w['title']}\") is cited by {w['cited_by_count']} work(s) "
+                    "in OpenAlex. Most-cited of the later works:")
+                for c in res["citing"]:
+                    lines.append(
+                        f"- \"{c['title']}\" — {c['container']}, {c['year']} "
+                        f"(DOI {c['doi'] or 'none'})")
+                if res.get("citing_unavailable"):
+                    lines.append(f"- ({res['citing_unavailable']} this run; the count "
+                                 "above is the record's own figure.)")
+                elif not res["citing"]:
+                    lines.append("- (OpenAlex lists no citing works.)")
+                    list_in_hand = True
+                else:
+                    list_in_hand = True
+            if not list_in_hand:
+                s2 = semanticscholar_citations(d, limit=5)
+                if s2:
+                    lines.append(f"Later works citing DOI {d}, per Semantic Scholar:")
+                    for c in s2:
+                        lines.append(
+                            f"- \"{c['title']}\" — {c['container']}, {c['year']} "
+                            f"(DOI {c['doi'] or 'none'})")
+                elif s2 == []:
+                    lines.append(f"Semantic Scholar lists no citing works for DOI {d}.")
+                else:
+                    lines.append(f"Semantic Scholar's record for DOI {d} could not "
+                                 "be reached this run either.")
     return records, "\n".join(lines)
 
 
@@ -282,8 +359,8 @@ def run_model_check(client: ModelClient, number: int, claim: Claim,
     name, mandate = CHECK_PROMPTS[number]
     user = f"CLAIM: {claim.text}\nALIASES: {', '.join(claim.aliases) or '(none listed)'}\n"
     user += "CITATIONS:\n" + ("\n".join(f"- {c.raw}" for c in claim.citations) or "(none)")
-    if dossier and number in (1, 2, 5):
-        user += f"\n\nSOURCE DOSSIER (registry retrieval, ground truth for existence):\n{dossier}"
+    if dossier and number in (1, 2, 3, 5):
+        user += f"\n\nSOURCE DOSSIER (registry retrieval — ground truth, gathered before this check ran):\n{dossier}"
     if number == 6:
         user += f"\n\nUSER FILES:\n{user_files or '(none provided)'}"
     model = MODEL_FIDELITY if number == 2 else MODEL_EXTRACTION
