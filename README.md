@@ -1,4 +1,4 @@
-# 9 PHC
+# 9 PHC — 9-Point Hallucination Calibration
 
 A post-research audit program. Paste in a finished piece of AI-assisted research — a draft, a report, a set of claims with citations. 9 PHC extracts every checkable claim, runs each one through nine verification checks, and returns a verdict report: every claim **Verified**, **Corrected**, or **Held — unverified**, with receipts.
 
