@@ -14,9 +14,13 @@ the orchestrator opens a new session for it and passes only the claim.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import subprocess
 import tempfile
+import threading
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Protocol
 
@@ -24,7 +28,7 @@ from checks_deterministic import check_numbers, letter_check
 from concurrent.futures import ThreadPoolExecutor
 from engine import render_report, resolve_verdict, verdicts_to_dict
 from extraction import EXTRACTION_SCHEMA, EXTRACTION_SYSTEM_PROMPT
-from model import CheckOutcome, CheckResult, Citation, Claim, ClaimVerdict
+from model import CheckOutcome, CheckResult, Citation, Claim, ClaimVerdict, Verdict
 from prompts import ADVERSARIAL_SYSTEM_PROMPT, CHECK_PROMPTS, SOURCE_STANDARD
 
 API_BASE = "https://api.meta.ai/v1"
@@ -54,7 +58,10 @@ class MetaModelClient:
     def __init__(self, _state: dict | None = None):
         if not HELPER.exists():
             raise RuntimeError(f"Connector helper not found at {HELPER} — setup is incomplete.")
-        self._state = _state if _state is not None else {"tokens": 0, "calls": 0}
+        if _state is None:
+            _state = {"tokens": 0, "calls": 0, "ledger": None,
+                      "lock": threading.Lock()}
+        self._state = _state
 
     def fresh(self) -> "MetaModelClient":
         # Fresh session, SHARED spend state: the ceiling covers the run.
@@ -62,6 +69,30 @@ class MetaModelClient:
 
     def usage_snapshot(self) -> dict:
         return {"api_calls": self._state["calls"], "api_tokens": self._state["tokens"]}
+
+    def attach_ledger(self, path) -> None:
+        """Append one JSON line per API call to this file, at call time.
+        The spend record must survive the process: if the run is killed,
+        what it burned is still on disk, accounted to the token."""
+        self._state["ledger"] = str(path)
+
+    def _record_usage(self, model: str, tokens: int) -> None:
+        with self._state["lock"]:
+            self._state["calls"] += 1
+            self._state["tokens"] += tokens
+            total_calls, total_tokens = self._state["calls"], self._state["tokens"]
+            ledger = self._state.get("ledger")
+            if ledger:
+                line = json.dumps({
+                    "ts_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                    "model": model, "tokens": tokens,
+                    "run_calls": total_calls, "run_tokens": total_tokens})
+                with open(ledger, "a", encoding="utf-8") as fh:
+                    fh.write(line + "\n")
+        if total_tokens > self.TOKEN_CEILING:
+            raise RuntimeError(
+                f"Token ceiling hit ({total_tokens} > {self.TOKEN_CEILING}); "
+                "run stopped under the spend cap.")
 
     def complete(self, model, system, user, json_schema=None):
         with tempfile.TemporaryDirectory() as td:
@@ -81,12 +112,7 @@ class MetaModelClient:
                 "Meta Model API call failed: " + (tail[-1] if tail else "unknown error"))
         data = json.loads(proc.stdout)
         usage = data.get("usage") or {}
-        self._state["calls"] += 1
-        self._state["tokens"] += int(usage.get("total_tokens") or 0)
-        if self._state["tokens"] > self.TOKEN_CEILING:
-            raise RuntimeError(
-                f"Token ceiling hit ({self._state['tokens']} > {self.TOKEN_CEILING}); "
-                "run stopped under the spend cap.")
+        self._record_usage(model, int(usage.get("total_tokens") or 0))
         return data["choices"][0]["message"]["content"]
 
 
@@ -382,6 +408,118 @@ def run_adversarial(client: ModelClient, claim: Claim) -> tuple[CheckResult, str
     return _parse_check(9, "Adversarial pass", raw)
 
 
+
+def _failed_verdict(claim: Claim, exc: Exception) -> ClaimVerdict:
+    """A claim whose audit crashed internally is Held, never lost and
+    never silently passed: the run completes, the failure is the door."""
+    return ClaimVerdict(
+        claim=claim, verdict=Verdict.HELD, checks=[],
+        held_reason=(f"The audit of this claim failed internally "
+                     f"({type(exc).__name__}: {exc}); it is Held, not settled. "
+                     "Re-run the audit to settle it."))
+
+# ---------------------------------------------------------------- checkpointing
+# A run must survive the machine it runs on. Findings reach disk after
+# every claim, not at the end: if the process is killed — a restart, a
+# crash, anything — a resumed run pays only for the claims still
+# missing, and the spend ledger (MetaModelClient) already holds what
+# the killed run burned. Checkpoint identity is the document's hash:
+# a changed document is a different audit and starts fresh.
+
+def _claim_to_dict(claim: Claim) -> dict:
+    return {
+        "id": claim.id, "text": claim.text, "claim_type": claim.claim_type,
+        "aliases": list(claim.aliases),
+        "citations": [{"raw": c.raw, "source_title": c.source_title,
+                       "identifier": c.identifier, "locator": c.locator}
+                      for c in claim.citations],
+        "numbers": getattr(claim, "numbers", []),
+        "components": getattr(claim, "components", []),
+    }
+
+
+def _claim_from_dict(d: dict) -> Claim:
+    claim = Claim(
+        id=d["id"], text=d["text"], claim_type=d.get("claim_type", "general"),
+        citations=[Citation(raw=x.get("raw", ""), source_title=x.get("source_title", ""),
+                            identifier=x.get("identifier", ""), locator=x.get("locator", ""))
+                   for x in d.get("citations", [])],
+        aliases=d.get("aliases", []))
+    claim.numbers = d.get("numbers", [])        # type: ignore[attr-defined]
+    claim.components = d.get("components", [])  # type: ignore[attr-defined]
+    return claim
+
+
+def _verdict_to_dict(cv: ClaimVerdict) -> dict:
+    from model import Evidence as _Ev  # noqa: F401  (kept for symmetry)
+    return {
+        "claim": _claim_to_dict(cv.claim),
+        "verdict": cv.verdict.value,
+        "correction": cv.correction,
+        "held_reason": cv.held_reason,
+        "checks": [{
+            "check_number": ch.check_number, "check_name": ch.check_name,
+            "outcome": ch.outcome.value, "note": ch.note, "door": ch.door,
+            "evidence": [{"source_name": e.source_name,
+                          "source_class": e.source_class.value,
+                          "detail": e.detail, "reference": e.reference}
+                         for e in ch.evidence],
+        } for ch in cv.checks],
+    }
+
+
+def _verdict_from_dict(d: dict) -> ClaimVerdict:
+    from model import CheckOutcome as _CO, Evidence as _Ev, SourceClass as _SC, Verdict as _V
+    checks = [CheckResult(
+        check_number=ch["check_number"], check_name=ch["check_name"],
+        outcome=_CO(ch["outcome"]), note=ch.get("note", ""), door=ch.get("door", ""),
+        evidence=[_Ev(e["source_name"], _SC(e["source_class"]), e["detail"],
+                      e.get("reference", ""))
+                  for e in ch.get("evidence", [])])
+        for ch in d.get("checks", [])]
+    return ClaimVerdict(claim=_claim_from_dict(d["claim"]), verdict=_V(d["verdict"]),
+                        checks=checks, correction=d.get("correction", ""),
+                        held_reason=d.get("held_reason", ""))
+
+
+def _sha(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _load_checkpoint(path: Path, document: str, title: str, user_files: str):
+    """Return (claims, verdicts_by_id, prior_usage) or None. Any doubt —
+    wrong document, wrong title, different user files, unreadable file —
+    means no checkpoint: a fresh run is always the safe answer."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if (data.get("document_sha256") != _sha(document)
+                or data.get("title") != title
+                or data.get("user_files_sha256") != _sha(user_files)):
+            return None
+        claims = [_claim_from_dict(d) for d in data.get("claims", [])]
+        verdicts = {int(k): _verdict_from_dict(v)
+                    for k, v in (data.get("verdicts") or {}).items()}
+        return claims, verdicts, data.get("usage") or {"calls": 0, "tokens": 0}
+    except Exception:
+        return None
+
+
+def _save_checkpoint(path: Path, document: str, title: str, user_files: str,
+                     claims: list[Claim], verdicts: dict, usage: dict) -> None:
+    data = {
+        "version": 1,
+        "document_sha256": _sha(document),
+        "title": title,
+        "user_files_sha256": _sha(user_files),
+        "claims": [_claim_to_dict(c) for c in claims],
+        "verdicts": {str(k): _verdict_to_dict(v) for k, v in verdicts.items()},
+        "usage": usage,
+        "saved_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, indent=1), encoding="utf-8")
+    os.replace(tmp, path)
+
 # ---------------------------------------------------------------- orchestration
 
 def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> ClaimVerdict:
@@ -432,29 +570,73 @@ def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> Clai
 
 
 def audit_document_data(client: ModelClient, document: str, title: str = "Audited document",
-                        user_files: str = "", max_workers: int = 4) -> tuple[str, dict]:
+                        user_files: str = "", max_workers: int = 4,
+                        checkpoint_path=None, on_claim_done=None) -> tuple[str, dict]:
     """Full audit. Claims are independent, so they run in parallel —
     the gauntlet's cost is minutes of wall clock on the audit step,
     never latency inside anyone's generation. Returns the Markdown
-    report and the structured findings an agent caller consumes."""
-    claims = extract_claims(client, document)
-    with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        verdicts = list(pool.map(lambda c: audit_claim(client, c, user_files), claims))
+    report and the structured findings an agent caller consumes.
+
+    With checkpoint_path set, extraction and every finished claim are
+    written to disk as they land; a killed run resumes where it
+    stopped and pays only for what is missing."""
+    from concurrent.futures import as_completed
+
+    ckpt = Path(checkpoint_path) if checkpoint_path else None
+    claims: list[Claim] = []
+    verdicts_by_id: dict[int, ClaimVerdict] = {}
+    prior_usage = {"calls": 0, "tokens": 0}
+    if ckpt is not None and ckpt.exists():
+        loaded = _load_checkpoint(ckpt, document, title, user_files)
+        if loaded is not None:
+            claims, verdicts_by_id, prior_usage = loaded
+
+    def _usage_now() -> dict:
+        snap = getattr(client, "usage_snapshot", None)
+        now = snap() if callable(snap) else {"api_calls": 0, "api_tokens": 0}
+        return {"calls": prior_usage["calls"] + now.get("api_calls", 0),
+                "tokens": prior_usage["tokens"] + now.get("api_tokens", 0)}
+
+    if not claims:
+        claims = extract_claims(client, document)
+        if ckpt is not None:
+            _save_checkpoint(ckpt, document, title, user_files,
+                             claims, verdicts_by_id, _usage_now())
+
+    todo = [c for c in claims if c.id not in verdicts_by_id]
+    if todo:
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {pool.submit(audit_claim, client, c, user_files): c for c in todo}
+            for fut in as_completed(futures):
+                try:
+                    cv = fut.result()
+                except Exception as exc:  # one claim's crash loses nothing
+                    cv = _failed_verdict(futures[fut], exc)
+                verdicts_by_id[cv.claim.id] = cv
+                if ckpt is not None:
+                    _save_checkpoint(ckpt, document, title, user_files,
+                                     claims, verdicts_by_id, _usage_now())
+                if on_claim_done is not None:
+                    on_claim_done(cv)
+
+    verdicts = [verdicts_by_id[c.id] for c in sorted(claims, key=lambda x: x.id)]
     findings = verdicts_to_dict(verdicts, title)
     snapshot = getattr(client, "usage_snapshot", None)
     if callable(snapshot):
-        findings["summary"].update(snapshot())
+        snap = snapshot()
+        findings["summary"].update({
+            "api_calls": prior_usage["calls"] + snap.get("api_calls", 0),
+            "api_tokens": prior_usage["tokens"] + snap.get("api_tokens", 0),
+        })
 
     # Run manifest — provenance for the audit itself. The document's
     # hash names the exact text these verdicts belong to: a changed
     # document is a different audit, and anyone holding the document
     # can recompute the hash and confirm this report is its audit.
-    import hashlib
-    from datetime import datetime, timezone
     manifest = {
         "program": "9-Point Hallucination Calibration (9 PHC)",
         "document_title": title,
-        "document_sha256": hashlib.sha256(document.encode("utf-8")).hexdigest(),
+        "document_sha256": _sha(document),
         "audited_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "models": {
             "extraction_and_evidence": MODEL_EXTRACTION,
@@ -473,6 +655,11 @@ def audit_document_data(client: ModelClient, document: str, title: str = "Audite
         f"audited at {manifest['audited_at_utc']} · "
         "Recompute the hash over the audited document to confirm this report is its audit."
     )
+    if ckpt is not None:
+        try:
+            ckpt.unlink()  # the run finished; its checkpoint has done its work
+        except OSError:
+            pass
     return report, findings
 
 

@@ -44,6 +44,8 @@ def main() -> int:
     ap.add_argument("--json", action="store_true",
                     help="Also write structured findings JSON (the agent-caller form)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--fresh", action="store_true",
+                    help="Discard any checkpoint and run the audit from zero")
     args = ap.parse_args()
 
     doc_path = Path(args.document)
@@ -51,9 +53,27 @@ def main() -> int:
     user_files = Path(args.files).read_text() if args.files else ""
     title = args.title or doc_path.stem
 
+    # Restart armor: findings checkpoint to disk after every claim, so
+    # a killed run resumes and pays only for what is missing; every API
+    # call is written to the spend ledger at call time.
+    checkpoint_path = doc_path.with_suffix(".checkpoint.json")
+    if args.fresh and checkpoint_path.exists():
+        checkpoint_path.unlink()
+    if checkpoint_path.exists() and not args.dry_run:
+        print(f"[resuming from checkpoint {checkpoint_path}]", file=sys.stderr)
+
     client = _DryRunClient() if args.dry_run else MetaModelClient()
+    if hasattr(client, "attach_ledger"):
+        client.attach_ledger(doc_path.with_suffix(".spend.jsonl"))
+
+    def _progress(cv):
+        print(f"[claim {cv.claim.id}: {cv.verdict.value}]", file=sys.stderr, flush=True)
+
     started = time.perf_counter()
-    report, findings = audit_document_data(client, document, title, user_files)
+    report, findings = audit_document_data(
+        client, document, title, user_files,
+        checkpoint_path=None if args.dry_run else checkpoint_path,
+        on_claim_done=_progress)
     findings["summary"]["wall_clock_seconds"] = round(time.perf_counter() - started, 2)
 
     out_path = doc_path.with_suffix(".audit.md")
