@@ -4,7 +4,11 @@ The engine takes a claim plus the results of the checks that ran on it
 and resolves exactly one verdict, by these rules (from the spec):
 
 - CORRECTED: a check contradicted the claim AND the record supplies
-  what is actually true. A contradiction always outranks uncertainty.
+  what is actually true AND that correction itself carries a receipt
+  from a peer-reviewed source or a primary record. Corrections are
+  claims too: an unbacked correction is never printed — the claim is
+  Held and the missing correcting record is named as the door.
+  A contradiction always outranks uncertainty.
 - HELD — unverified: no contradiction settled it, but a deciding check
   could not settle the claim from reachable peer-reviewed / primary
   sources. The door (the unreachable source) is named. Never softened.
@@ -46,8 +50,24 @@ def resolve_verdict(claim: Claim, checks, corrections: dict[int, str] | None = N
     if fails:
         corr_texts = [corrections[c.check_number] for c in fails if c.check_number in corrections]
         if corr_texts:
-            v.verdict = Verdict.CORRECTED
-            v.correction = " ".join(corr_texts)
+            # Audit the correction before printing it: the checks that
+            # supplied it must carry a strong receipt between them.
+            supplying = [c for c in fails if c.check_number in corrections]
+            backed = any(
+                e.source_class in (SourceClass.PEER_REVIEWED, SourceClass.PRIMARY_RECORD)
+                for c in supplying for e in c.evidence
+            )
+            if backed:
+                v.verdict = Verdict.CORRECTED
+                v.correction = " ".join(corr_texts)
+                return v
+            v.verdict = Verdict.HELD
+            v.held_reason = (
+                "A check contradicted this claim and a correction was asserted, "
+                "but no peer-reviewed or primary receipt backs that correction. "
+                "Corrections are claims too, and an unbacked correction is not "
+                "printed. Door: the correcting record itself, opened."
+            )
             return v
         # Contradicted but the correction itself is not in hand:
         # the claim cannot stand, and we do not guess — it is HELD.
@@ -116,6 +136,18 @@ def verdicts_to_dict(verdicts: list[ClaimVerdict], document_title: str = "Audite
             "confidence_percent": (round(100 * counts[Verdict.VERIFIED] / total)
                                    if total else None),
         },
+        # The Held work queue: holding is not a shelf. Every Held
+        # claim leaves with the door that would settle it, in a form
+        # a researcher (or an agent) can work down item by item.
+        "held_queue": [
+            {
+                "claim_id": cv.claim.id,
+                "text": cv.claim.text,
+                "doors": sorted({ch.door for ch in cv.checks if ch.door}),
+                "reason": cv.held_reason,
+            }
+            for cv in verdicts if cv.verdict is Verdict.HELD
+        ],
         "claims": [
             {
                 "id": cv.claim.id,
@@ -178,6 +210,21 @@ def render_report(verdicts: list[ClaimVerdict], document_title: str = "Audited d
             if len(text) > 90:
                 text = text[:87] + "…"
             lines.append(f"- Claim {cv.claim.id} — **{cv.verdict.value}** — {text}")
+        lines.append("")
+
+    held = [cv for cv in verdicts if cv.verdict is Verdict.HELD]
+    if held:
+        lines.append("## Held — the work queue")
+        lines.append("")
+        lines.append(
+            "Each Held claim names the door that would settle it. This queue "
+            "is the follow-up work, stated plainly — not a shelf."
+        )
+        lines.append("")
+        for cv in held:
+            doors = sorted({ch.door for ch in cv.checks if ch.door})
+            door_text = "; ".join(doors) if doors else "see the claim's held reason below"
+            lines.append(f"- Claim {cv.claim.id} — door: {door_text}")
         lines.append("")
 
     for cv in verdicts:

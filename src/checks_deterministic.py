@@ -18,7 +18,7 @@ from __future__ import annotations
 import re
 from decimal import Decimal, InvalidOperation
 
-from model import CheckOutcome, CheckResult
+from model import CheckOutcome, CheckResult, Evidence, SourceClass
 
 
 # ---------------------------------------------------------------- check 7
@@ -103,18 +103,30 @@ def check_numbers(claim_id: int, stated_total, components: list) -> CheckResult:
                  "the discrepancy is reported, not averaged away.",
             door="A clean item list from the source of record",
         )
+    # The receipt for an arithmetic verdict is the document itself:
+    # the components as the author wrote them are the primary record
+    # for the author's own total. A correction printed by this program
+    # must carry its receipt — deterministic checks included.
+    receipt = Evidence(
+        source_name="The audited document's own stated components",
+        source_class=SourceClass.PRIMARY_RECORD,
+        detail=f"Components as written: {', '.join(str(c) for c in components)} — "
+               f"they rebuild to {value} (three recomputations, in agreement).",
+    )
     if value == stated:
         return CheckResult(
             check_number=7, check_name="Numbers recomputed",
             outcome=CheckOutcome.PASS,
             note=f"Total rebuilt from {len(components)} items three times: "
                  f"{value} — matches the stated total.",
+            evidence=[receipt],
         )
     return CheckResult(
         check_number=7, check_name="Numbers recomputed",
         outcome=CheckOutcome.FAIL,
         note=f"Stated total is {stated}, but the {len(components)} underlying "
              f"items rebuild to {value} (three runs, in agreement).",
+        evidence=[receipt],
     )
 
 
@@ -191,13 +203,28 @@ def registry_name_check(claim, records: list[dict]) -> CheckResult | None:
     Deterministic code, no model opinion."""
     import re as _re
     surnames: list[str] = []
+    surname_source: dict[str, tuple[str, dict]] = {}
     for rec in records:
         for author in rec.get("authors", []):
             sur = _surname(author)
             if sur and sur not in surnames:
                 surnames.append(sur)
+                surname_source[sur] = (author, rec)
     if not surnames:
         return None
+
+    def _with_receipt(result: CheckResult, sur: str) -> CheckResult:
+        """A name correction's receipt is the registry record itself —
+        the record that spells the name is named and referenced, so
+        the correction can be re-opened by anyone reading the report."""
+        author, rec = surname_source[sur]
+        result.evidence = [Evidence(
+            source_name=f"Registry record: \"{rec.get('title', '')}\"",
+            source_class=SourceClass.PRIMARY_RECORD,
+            detail=f"The record's author of record is {author} — the name "
+                   f"is spelled '{sur}'.",
+            reference=rec.get("doi", ""))]
+        return result
     token_re = _re.compile(r"[A-Z][a-zà-ÿ]+(?:-[A-Z][a-zà-ÿ]+)*")
 
     def candidates(text: str, title: str) -> list[str]:
@@ -220,7 +247,7 @@ def registry_name_check(claim, records: list[dict]) -> CheckResult | None:
             elif 1 <= _levenshtein(cand.lower(), sur.lower()) <= 2:
                 result = letter_check(cand, sur, what=f"Name '{cand}'")
                 result.note += (f" Registry record for the cited source spells it '{sur}'.")
-                return result
+                return _with_receipt(result, sur)
     for cand in candidates(claim.text or "", titles):
         if cand in cited:
             continue
@@ -230,7 +257,7 @@ def registry_name_check(claim, records: list[dict]) -> CheckResult | None:
             elif _levenshtein(cand.lower(), sur.lower()) == 1:
                 result = letter_check(cand, sur, what=f"Name '{cand}'")
                 result.note += (f" Registry record for the cited source spells it '{sur}'.")
-                return result
+                return _with_receipt(result, sur)
     if matched:
         return CheckResult(
             check_number=8, check_name="Names and IDs letter-checked",

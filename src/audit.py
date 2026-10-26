@@ -444,7 +444,36 @@ def audit_document_data(client: ModelClient, document: str, title: str = "Audite
     snapshot = getattr(client, "usage_snapshot", None)
     if callable(snapshot):
         findings["summary"].update(snapshot())
-    return render_report(verdicts, title), findings
+
+    # Run manifest — provenance for the audit itself. The document's
+    # hash names the exact text these verdicts belong to: a changed
+    # document is a different audit, and anyone holding the document
+    # can recompute the hash and confirm this report is its audit.
+    import hashlib
+    from datetime import datetime, timezone
+    manifest = {
+        "program": "9 PHC",
+        "document_title": title,
+        "document_sha256": hashlib.sha256(document.encode("utf-8")).hexdigest(),
+        "audited_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "models": {
+            "extraction_and_evidence": MODEL_EXTRACTION,
+            "fidelity": MODEL_FIDELITY,
+            "adversarial": MODEL_ADVERSARIAL,
+        },
+        "claims_audited": len(verdicts),
+    }
+    findings["manifest"] = manifest
+    report = render_report(verdicts, title)
+    report += (
+        "\n---\n\n"
+        f"**Run manifest** — document SHA-256: `{manifest['document_sha256']}` · "
+        f"models: {MODEL_EXTRACTION} (extraction, evidence), {MODEL_FIDELITY} "
+        f"(fidelity), {MODEL_ADVERSARIAL} (adversarial, fresh session) · "
+        f"audited at {manifest['audited_at_utc']} · "
+        "Recompute the hash over the audited document to confirm this report is its audit."
+    )
+    return report, findings
 
 
 def audit_document(client: ModelClient, document: str, title: str = "Audited document",

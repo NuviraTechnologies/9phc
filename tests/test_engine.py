@@ -58,10 +58,21 @@ assert real.outcome is CheckOutcome.FAIL
 v = resolve_verdict(claim, [real], {7: "The three series sum to 47 editions, not 50."})
 assert v.verdict is Verdict.CORRECTED
 
-# 5 — Name letter-check (real deterministic check 8): Fevre vs Febvre -> CORRECTED
-claim = Claim(5, "Lucien Fevre, The Coming of the Book.")
-real = letter_check("Fevre", "Febvre", "author name")
-assert real.outcome is CheckOutcome.FAIL
+# 5 — Name letter-check via the real registry path (check 8):
+# Fevre vs Febvre -> CORRECTED. The pipeline path is registry_name_check
+# (bare letter_check knows no record, so it carries no receipt — and
+# since the corrections-carry-receipts rule, an unbacked correction
+# would resolve Held, as test_layers case 1c pins down).
+claim = Claim(5, "Lucien Fevre, The Coming of the Book.",
+              citations=[Citation("Fevre, The Coming of the Book",
+                                  source_title="The Coming of the Book")])
+from checks_deterministic import registry_name_check
+real = registry_name_check(claim, [{"title": "The Coming of the Book",
+                                    "authors": ["Lucien Febvre", "Henri-Jean Martin"],
+                                    "doi": "10.0/record", "container": "Verso",
+                                    "year": 1976}])
+assert real is not None and real.outcome is CheckOutcome.FAIL
+assert real.evidence and real.evidence[0].source_class is SourceClass.PRIMARY_RECORD
 v = resolve_verdict(claim, [real], {8: "The name is Lucien Febvre."})
 assert v.verdict is Verdict.CORRECTED
 
