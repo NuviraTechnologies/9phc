@@ -38,9 +38,13 @@ CHECK_PROMPTS = {
         "the source's own record in the dossier — its abstract of record, its "
         "catalogue description, the passage of record — at the place cited. "
         "Other people's paraphrases do not count; the source's own record "
-        "does. PASS if it matches, FAIL if it differs, stating what the "
-        "source actually says. UNSETTLED only when the record in hand is "
-        "silent on the deciding point, naming that point as the door."),
+        "does. QUOTE OR ABSTAIN: open your note by quoting, word for word "
+        "inside double quotes, the line of the record that decides this "
+        "claim, then judge from that line. A verdict without the quoted line "
+        "is void and will be recorded as UNSETTLED. PASS if the quoted line "
+        "matches the claim, FAIL if it differs, stating what the source "
+        "actually says. UNSETTLED only when no line in the record speaks to "
+        "the deciding point, naming that point as the door."),
     3: ("Alias sweep",
         "The claim's subject carries other names (listed with the claim). "
         "Search the record under EVERY alias: alternate titles, incipits, "
@@ -82,6 +86,12 @@ reasoning that produced it. Argue as an opponent who wants the claim dead:
 search for the source that contradicts it, the edition it missed, the alias
 it never swept, the count it got wrong. Use fresh sources you find yourself,
 not the claim's own citations where avoidable.
+
+A kill counts only when you can NAME the record that carries it: cite the
+settling source by title in your evidence, from the dossier attached below
+or from a source you opened yourself. A contradiction you cannot tie to a
+named peer-reviewed source or primary record is not a kill — it is
+UNSETTLED, and you say which record would settle it.
 
 {standard}
 

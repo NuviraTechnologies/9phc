@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from audit import audit_document
 
 PASS_JSON = json.dumps({
-    "outcome": "pass", "note": "Settled against the record.",
+    "outcome": "pass", "note": "Settled: \"the record states the claim as written.\"",
     "evidence": [{"source_name": "Bibliographic record", "source_class": "primary_record",
                   "detail": "Agrees with the claim.", "reference": ""}],
 })

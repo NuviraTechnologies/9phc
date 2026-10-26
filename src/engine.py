@@ -48,11 +48,18 @@ def resolve_verdict(claim: Claim, checks, corrections: dict[int, str] | None = N
     unsettled = [c for c in checks if c.outcome is CheckOutcome.UNSETTLED]
 
     if fails:
-        corr_texts = [corrections[c.check_number] for c in fails if c.check_number in corrections]
+        # Computed corrections take precedence: when a deterministic
+        # check (7 numbers, 8 names) computed the correction from the
+        # document itself, it prints alone — model-supplied corrections
+        # on the same claim are not concatenated onto it (one live run
+        # printed two checks' prose corrections back to back).
+        with_corr = [c for c in fails if c.check_number in corrections]
+        computed = [c for c in with_corr if c.check_number in (7, 8)]
+        supplying = computed if computed else with_corr
+        corr_texts = [corrections[c.check_number] for c in supplying]
         if corr_texts:
             # Audit the correction before printing it: the checks that
             # supplied it must carry a strong receipt between them.
-            supplying = [c for c in fails if c.check_number in corrections]
             backed = any(
                 e.source_class in (SourceClass.PEER_REVIEWED, SourceClass.PRIMARY_RECORD)
                 for c in supplying for e in c.evidence

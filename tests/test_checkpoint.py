@@ -27,7 +27,7 @@ from audit import MetaModelClient, audit_document_data  # noqa: E402
 CLAIMS = [{"text": f"Claim number {i} states a fact.", "claim_type": "factual",
            "citations": [], "aliases": [], "numbers": [], "components": []}
           for i in range(1, 5)]
-PASS = json.dumps({"outcome": "pass", "note": "ok", "door": "",
+PASS = json.dumps({"outcome": "pass", "note": "ok: “the record states it”", "door": "",
                    "correction": "", "evidence": []})
 DOC = "Claim number 1 states a fact.\n\nClaim number 2 states a fact."
 
@@ -40,7 +40,7 @@ CHILD = textwrap.dedent("""
     CLAIMS = [{"text": f"Claim number {i} states a fact.", "claim_type": "factual",
                "citations": [], "aliases": [], "numbers": [], "components": []}
               for i in range(1, 5)]
-    PASS = json.dumps({"outcome": "pass", "note": "ok", "door": "",
+    PASS = json.dumps({"outcome": "pass", "note": "ok: “the record states it”", "door": "",
                        "correction": "", "evidence": []})
 
     class FakeClient:

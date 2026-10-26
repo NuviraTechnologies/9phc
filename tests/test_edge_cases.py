@@ -15,12 +15,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from audit import _chunk_document, audit_document_data, extract_claims  # noqa: E402
 
 PASS_JSON = json.dumps({
-    "outcome": "pass", "note": "scripted pass", "door": "", "correction": "",
+    "outcome": "pass", "note": "scripted pass: \"the record states it\"", "door": "", "correction": "",
     "evidence": [{"source_name": "Scripted receipt", "source_class": "peer_reviewed",
                   "detail": "supports the claim", "reference": "test"}],
 })
 PASS_NO_RECEIPT_JSON = json.dumps({
-    "outcome": "pass", "note": "scripted pass, no receipt", "door": "",
+    "outcome": "pass", "note": "scripted pass, no receipt: \"the record states it\"", "door": "",
     "correction": "", "evidence": [],
 })
 

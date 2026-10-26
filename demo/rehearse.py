@@ -89,7 +89,7 @@ DEMO1_CLAIMS = [
 DEMO1_RULES = [
     ("maggs", "ALL", _res("unsettled", "Scripted: the deciding source is print-only.",
                           door="Maggs Bros catalogue No. 562 (1932)")),
-    ("italic", 2, _res("fail", "Scripted: the source credits the type's cutter.",
+    ("italic", 2, _res("fail", "Scripted: the record line \"the italic type was cut by Francesco Griffo\" credits the type's cutter, not Aldus.",
                        correction="The italic type was designed and cut by Francesco "
                                   "Griffo of Bologna; Aldus commissioned it — he did "
                                   "not design it himself.")),
@@ -138,7 +138,7 @@ DEMO2_RULES = [
                                                       "was never distributed.",
                                         door="The Manned Spacecraft Center internal "
                                              "newsletter, Vol. 8 No. 23")),
-    ("built by ibm", 2, _res("fail", "Scripted: the record names a different builder.",
+    ("built by ibm", 2, _res("fail", "Scripted: the record line \"built by the Raytheon Company\" names a different builder.",
                              correction="The Apollo Guidance Computer was built by "
                                         "Raytheon to MIT's design; IBM built the Saturn V "
                                         "instrument unit, not the guidance computer.")),
@@ -203,7 +203,7 @@ DEMO3_RULES = [
     ("minute book", "ALL", _res("unsettled", "Scripted: the deciding source is a "
                                               "closed manuscript.",
                                 door="The Vienna Medical Society's manuscript minute book")),
-    ("soap and water", 2, _res("fail", "Scripted: the record names a different agent.",
+    ("soap and water", 2, _res("fail", "Scripted: the record line \"washed in chlorinated lime solution\" names a different agent.",
                                correction="Semmelweis ordered disinfection with a "
                                           "chlorinated lime solution; plain soap and water "
                                           "did not remove the cadaveric material, which "
@@ -261,6 +261,12 @@ class RehearsalClient:
         for marker, which, payload in rules:
             if marker in low and (which == "ALL" or which == number):
                 return payload
+        if number == 2:
+            # Fidelity's fall-through pass must satisfy quote-or-abstain:
+            # its note carries the quoted record line it judged from.
+            return _res("pass", "Scripted fidelity: the record line "
+                                "\"the source states the claim as written\" "
+                                "matches the claim.")
         return PASS
 
 

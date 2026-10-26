@@ -402,11 +402,16 @@ def run_model_check(client: ModelClient, number: int, claim: Claim,
     return _parse_check(number, name, raw)
 
 
-def run_adversarial(client: ModelClient, claim: Claim) -> tuple[CheckResult, str]:
-    """Check 9 — fresh session, debunk mandate, claim only (independence rule)."""
+def run_adversarial(client: ModelClient, claim: Claim,
+                    dossier: str = "") -> tuple[CheckResult, str]:
+    """Check 9 — fresh session, debunk mandate (independence rule: it never
+    sees the producing session's reasoning; it DOES receive the registry
+    dossier, because a kill must land on a named record, not on memory)."""
     fresh = client.fresh()
     system = ADVERSARIAL_SYSTEM_PROMPT.format(standard=SOURCE_STANDARD)
     user = f"CLAIM: {claim.text}\nALIASES: {', '.join(claim.aliases) or '(none listed)'}"
+    if dossier:
+        user += f"\n\nSOURCE DOSSIER (registry retrieval — gathered before this pass):\n{dossier}"
     raw = _safe_complete(fresh, MODEL_ADVERSARIAL, system, user, json_schema=_CHECK_RESULT_SCHEMA)
     if raw is None:
         return _unsettled(9, "Adversarial pass", "the model call failed (timeout or API error)"), ""
@@ -535,26 +540,43 @@ _GATE_STOPWORDS = {
 }
 
 
+import re as _re_mod
+_QUOTED_SPAN = _re_mod.compile(r'["\u201c][^"\u201d]{8,}["\u201d]|\u00ab[^\u00bb]{8,}\u00bb')
+
+
 def _significant_tokens(text: str) -> set[str]:
     import re as _re
     return {t for t in _re.findall(r"[a-zà-ÿ]{5,}", (text or "").lower())
             if t not in _GATE_STOPWORDS}
 
 
+_BOILERPLATE_MARKERS = (
+    "illegal activity", "wrongdoing", "cause serious harm",
+    "refusal language", "as an ai", "i cannot", "i can't help",
+    "content policy", "safety guidelines", "detailed instructions "
+    "or guidance",
+)
+
+
 def _accept_correction(claim: Claim, result: CheckResult, correction: str) -> str:
-    """Sanity gate for MODEL-supplied corrections. A correction that
-    shares no significant token with the claim it corrects or with its
-    own check's note is not a correction of this claim — it is stray
-    text (one live run attached a sentence about rebirth and opinion
-    to a claim about a book's languages). Dropped corrections leave
-    the FAIL standing; the verdict then resolves as contradicted-but-
-    uncorrected (Held), which is the honest state. Deterministic
-    corrections (checks 7 and 8) are computed from the document and
-    never pass through this gate."""
+    """Sanity gate v2 for MODEL-supplied corrections. Two screens:
+    (1) boilerplate — refusal/policy text a model emitted into the
+    wrong seat (one live run 'corrected' a clean book-history claim
+    with refusal boilerplate about wrongdoing and illegal activity)
+    is dropped whatever else it contains; (2) ground — a correction
+    must share a significant token with THE CLAIM IT CORRECTS. The
+    pool is the claim text only: v1 also admitted the check's own
+    note, and a corrupted note waved its own corruption through.
+    Dropped corrections leave the FAIL standing; the verdict then
+    resolves as contradicted-but-uncorrected (Held), the honest
+    state. Deterministic corrections (checks 7 and 8) are computed
+    from the document and never pass through this gate."""
     if not correction:
         return ""
-    pool = _significant_tokens(claim.text) | _significant_tokens(result.note)
-    if _significant_tokens(correction) & pool:
+    low = correction.lower()
+    if any(marker in low for marker in _BOILERPLATE_MARKERS):
+        return ""
+    if _significant_tokens(correction) & _significant_tokens(claim.text):
         return correction
     return ""
 
@@ -574,6 +596,19 @@ def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> Clai
         if number == 6 and not user_files.strip():
             continue
         result, correction = run_model_check(client, number, claim, user_files, dossier)
+        if number == 2 and result.outcome in (CheckOutcome.PASS, CheckOutcome.FAIL) \
+                and not _QUOTED_SPAN.search(result.note or ""):
+            # Quote-or-abstain, enforced: a fidelity verdict that quotes
+            # no line of the record never engaged with the record. It is
+            # recorded as UNSETTLED, with the unquoted record as the door.
+            result = CheckResult(
+                check_number=2, check_name=CHECK_PROMPTS[2][0],
+                outcome=CheckOutcome.UNSETTLED,
+                note=("Fidelity returned a verdict without quoting the line "
+                      "of the record that decides the claim; under the "
+                      "quote-or-abstain rule the verdict is void."),
+                door="The cited source's own record, quoted line in hand")
+            correction = ""
         checks.append(result)
         correction = _accept_correction(claim, result, correction)
         if correction:
@@ -601,7 +636,19 @@ def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> Clai
         if name_result.outcome is CheckOutcome.FAIL:
             corrections[8] = name_result.note
 
-    result, correction = run_adversarial(client, claim)
+    result, correction = run_adversarial(client, claim, dossier)
+    if result.outcome is CheckOutcome.FAIL and not result.evidence:
+        # Receipt-bound kills: an adversarial FAIL that names no settling
+        # source in its evidence is an assertion, not a kill. It degrades
+        # to UNSETTLED — the honest record of an unlanded attack.
+        result = CheckResult(
+            check_number=9, check_name="Adversarial pass",
+            outcome=CheckOutcome.UNSETTLED,
+            note=("The adversarial pass asserted a contradiction but named "
+                  "no settling source in its evidence; an unnamed kill "
+                  "does not land."),
+            door="The settling record the attack relied on, named")
+        correction = ""
     checks.append(result)
     correction = _accept_correction(claim, result, correction)
     if correction:
