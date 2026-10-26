@@ -30,7 +30,7 @@ a citation that doesn't exist, a fact that's almost right, and say it
 with total confidence. I've trusted it and been burned in my own research.
 So during this hackathon I built the thing I needed: a program that puts
 finished research through the gauntlet before it carries anybody's name.
-It's called 9 PHC — 9-Point Hallucination Calibration."
+It's called 9-Point Hallucination Calibration — 9 PHC."
 
 ## Segment 2 — What it is (0:35–0:55) — PRODUCED (screen: the run starting)
 

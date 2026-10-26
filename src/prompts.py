@@ -1,4 +1,4 @@
-"""9 PHC — the checker prompts.
+"""9 PHC — the check prompts.
 
 Each model-backed check runs as its own pass with its own mandate.
 Check 9 is the important one: it runs in a FRESH context, with a

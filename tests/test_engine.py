@@ -109,5 +109,5 @@ sample = render_report([resolve_verdict(Claim(1, "The Aldine italic type was des
                                         [cr(2, "Source fidelity", CheckOutcome.FAIL, "Credits Griffo.")],
                                         {2: "Designed by Francesco Griffo."})],
                        "demo")
-assert "Corrected" in sample and "9 PHC audit" in sample
+assert "Corrected" in sample and "9-Point Hallucination Calibration (9 PHC) audit" in sample
 print("engine: report render smoke test passed")

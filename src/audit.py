@@ -452,7 +452,7 @@ def audit_document_data(client: ModelClient, document: str, title: str = "Audite
     import hashlib
     from datetime import datetime, timezone
     manifest = {
-        "program": "9 PHC",
+        "program": "9-Point Hallucination Calibration (9 PHC)",
         "document_title": title,
         "document_sha256": hashlib.sha256(document.encode("utf-8")).hexdigest(),
         "audited_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),

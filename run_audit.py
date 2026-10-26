@@ -37,7 +37,7 @@ class _DryRunClient:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Run a 9 PHC audit over a document.")
+    ap = argparse.ArgumentParser(description="Run a 9-Point Hallucination Calibration (9 PHC) audit over a document.")
     ap.add_argument("document", help="Path to the document to audit (.md/.txt)")
     ap.add_argument("--title", default=None)
     ap.add_argument("--files", default=None, help="User's own files text, for check 6")

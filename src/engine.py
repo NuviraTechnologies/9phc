@@ -121,7 +121,7 @@ def verdicts_to_dict(verdicts: list[ClaimVerdict], document_title: str = "Audite
         counts[cv.verdict] += 1
     total = len(verdicts)
     return {
-        "program": "9 PHC",
+        "program": "9-Point Hallucination Calibration (9 PHC)",
         "document": document_title,
         "summary": {
             "claims": total,
@@ -177,7 +177,7 @@ def render_report(verdicts: list[ClaimVerdict], document_title: str = "Audited d
         counts[cv.verdict] += 1
 
     lines: list[str] = []
-    lines.append(f"# 9 PHC audit — {document_title}")
+    lines.append(f"# 9-Point Hallucination Calibration (9 PHC) audit — {document_title}")
     lines.append("")
     lines.append(
         f"**{len(verdicts)} claims audited.** "

@@ -1,6 +1,6 @@
 # Submission copy — draft (Richard approves before use)
 
-**Project name:** 9 PHC — 9-Point Hallucination Calibration
+**Project name:** 9-Point Hallucination Calibration (9 PHC)
 
 **One line:** A post-research audit that runs nine checks over AI-assisted work — including the alias sweep, the own-files sweep, and an independent adversarial pass — and returns each claim Verified, Corrected, or Held unverified, with receipts.
 
