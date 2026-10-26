@@ -194,12 +194,19 @@ def _surname(author: str) -> str:
 
 def registry_name_check(claim, records: list[dict]) -> CheckResult | None:
     """Check 8's name half, wired to the registries: author surnames as
-    written in the document's citations are letter-checked against the
-    surnames in the resolved source records. A near-miss (edit distance
-    1-2, not equal) is a misspelling with the correction in hand — the
-    record's own spelling. Names written in the claim TEXT are held to
-    a tighter window (distance exactly 1): ordinary prose is full of
-    capitalized words, and a loose window would manufacture findings.
+    written in the claim's TEXT are letter-checked against the surnames
+    in the resolved source records. A near-miss (edit distance exactly
+    1, not equal) is a misspelling with the correction in hand — the
+    record's own spelling.
+
+    Jurisdiction is the claim text, and only the claim text. Citation
+    metadata describes the SOURCE, not the claim: harvesting candidate
+    names from citation strings manufactures corrections about names
+    the claim never wrote (one live run corrected a claim about a
+    translation's year for a misspelling that lived in a neighbouring
+    claim, carried in on shared citation metadata). The text window is
+    distance exactly 1 for the same reason: ordinary prose is full of
+    capitalized words, and a loose window manufactures findings.
     Deterministic code, no model opinion."""
     import re as _re
     surnames: list[str] = []
@@ -234,23 +241,11 @@ def registry_name_check(claim, records: list[dict]) -> CheckResult | None:
                 out.append(tok)
         return out
 
-    cited: list[str] = []
     titles = ""
     for cit in claim.citations:
         titles += " " + (cit.source_title or "")
-        cited.extend(candidates(cit.raw or "", cit.source_title or ""))
     matched = False
-    for cand in cited:
-        for sur in surnames:
-            if cand == sur or cand == sur.split("-")[-1]:
-                matched = True
-            elif 1 <= _levenshtein(cand.lower(), sur.lower()) <= 2:
-                result = letter_check(cand, sur, what=f"Name '{cand}'")
-                result.note += (f" Registry record for the cited source spells it '{sur}'.")
-                return _with_receipt(result, sur)
     for cand in candidates(claim.text or "", titles):
-        if cand in cited:
-            continue
         for sur in surnames:
             if cand == sur:
                 matched = True
@@ -269,10 +264,21 @@ def registry_name_check(claim, records: list[dict]) -> CheckResult | None:
 _DOI_SHAPE = re.compile(r"^10\.\d{4,9}/\S+$")
 
 
-def doi_shape_check(doi: str) -> CheckResult:
+def doi_shape_check(doi: str) -> CheckResult | None:
     """Shape only: does this string have the form of a DOI at all?
-    Existence of the DOI is check 1's job, not this one's."""
-    cleaned = doi.strip().removeprefix("https://doi.org/").removeprefix("doi:")
+    Existence of the DOI is check 1's job, not this one's.
+
+    Jurisdiction: the shape judgment applies only to strings that
+    PURPORT to be DOIs (a 10. prefix, a doi: prefix, a doi.org link).
+    Any other identifier — a catalogue number, a year, a locator the
+    extractor parked in the identifier field — is not judged here at
+    all; ruling that '1932' is not DOI-shaped manufactures a failure
+    out of a string that never claimed to be one."""
+    raw = doi.strip()
+    if not (raw.startswith("10.") or raw.lower().startswith("doi:")
+            or "doi.org/" in raw.lower()):
+        return None
+    cleaned = raw.removeprefix("https://doi.org/").removeprefix("doi:")
     if _DOI_SHAPE.match(cleaned):
         return CheckResult(
             check_number=8, check_name="Names and IDs letter-checked",

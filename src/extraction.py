@@ -67,6 +67,10 @@ EXTRACTION_SYSTEM_PROMPT = """You are the extraction pass of an audit program.
 Break the document into discrete, individually checkable claims.
 Rules:
 - One claim per statement that could be true or false on its own.
+- If a statement leans on a citation ('as X has shown', 'according to Y',
+  'confirmed in Z'), the attribution is part of the claim: keep the cited
+  author and work named in the claim text. A claim stripped of the source
+  it leans on cannot be audited for that source.
 - Copy citations EXACTLY as written, including any errors. Never repair them.
 - List every other name, title, or label you know the claim's subject carries.
 - For numerical claims, record the stated total and the component items it sums.

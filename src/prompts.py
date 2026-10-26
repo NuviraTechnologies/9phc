@@ -11,19 +11,36 @@ contradicted only by a peer-reviewed source or a primary record (the cited
 source itself, opened; an official catalogue or record). Wikipedia and other
 crowd-edited tertiary pages NEVER settle a claim — at most they point toward
 a source that does. If the deciding source cannot be opened, the check is
-UNSETTLED and you must name the door: the exact source that would decide it."""
+UNSETTLED and you must name the door: the exact source that would decide it.
+
+The SOURCE DOSSIER attached to a claim is the source opened at registry
+level: the catalogue record, the metadata of record, the abstract of record.
+Judge from the record in hand. UNSETTLED requires naming the deciding point
+the record in hand is SILENT on — the absence of a fetched full text is not
+by itself a deciding point when the record in hand speaks to the claim. A
+third party's paraphrase still never counts; the source's own record does."""
 
 CHECK_PROMPTS = {
     1: ("Source existence",
         "For each citation attached to the claim: does this source exist? "
         "Resolve it in catalogues/records (publisher, journal archive, library "
-        "catalogue, DOI registry). Report PASS if every citation resolves, "
-        "FAIL if any citation cannot be found anywhere, naming which one."),
+        "catalogue, DOI registry). Report PASS if every citation resolves. "
+        "FAIL only on positive grounds: a registry-class source (a journal "
+        "article with volume and pages, a DOI- or ISBN-bearing work) that "
+        "resolves NOWHERE, or a record that resolves and is a different work "
+        "than the one cited — in the first case the correction is that the "
+        "cited source does not exist. A source of a class registries do not "
+        "hold (print-only catalogues, manuscripts, ephemera) that does not "
+        "resolve is UNSETTLED, with the artifact itself as the door: registry "
+        "silence about print artifacts settles nothing."),
     2: ("Source fidelity",
-        "Open the cited source at the cited place. Does it say what the claim "
-        "says it says? Summaries, abstracts, and other people's paraphrases do "
-        "not count — the source itself, at the place cited. PASS if it matches, "
-        "FAIL if it differs, stating what the source actually says."),
+        "Does the cited source say what the claim says it says? Judge against "
+        "the source's own record in the dossier — its abstract of record, its "
+        "catalogue description, the passage of record — at the place cited. "
+        "Other people's paraphrases do not count; the source's own record "
+        "does. PASS if it matches, FAIL if it differs, stating what the "
+        "source actually says. UNSETTLED only when the record in hand is "
+        "silent on the deciding point, naming that point as the door."),
     3: ("Alias sweep",
         "The claim's subject carries other names (listed with the claim). "
         "Search the record under EVERY alias: alternate titles, incipits, "
@@ -31,7 +48,11 @@ CHECK_PROMPTS = {
         "'no translation exists', 'first') fails if anything surfaces under "
         "any alias. Report what the sweep found under each name. When an "
         "ALIAS DOSSIER is attached, it is registry ground truth gathered "
-        "before this check ran: judge the sweep from it, not from memory."),
+        "before this check ran: judge the sweep from it, not from memory. "
+        "The dossier's search under each alias IS the sweep: if every listed "
+        "alias was searched, the sweep is complete and you judge PASS or FAIL "
+        "from what it found. UNSETTLED only for an alias that could not be "
+        "searched at all, naming it as the door."),
     4: ("Right-level check",
         "Verify the claim at the level it lives at. A claim about a work is "
         "checked against the work's own record — not only the record of one "

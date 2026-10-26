@@ -28,7 +28,9 @@ assert r.outcome is CheckOutcome.FAIL and "character 12" in r.note, r.note
 
 # DOI shape: valid and invalid forms
 assert doi_shape_check("10.5281/zenodo.23640488").outcome is CheckOutcome.PASS
-assert doi_shape_check("zenodo.23640488").outcome is CheckOutcome.FAIL
+assert doi_shape_check("10.52/abc").outcome is CheckOutcome.FAIL
+assert doi_shape_check("1932") is None
+assert doi_shape_check("562") is None
 
 # Check 7 upgrades: dozen and percent forms (2026-10-26 elevation pass)
 r = check_numbers(4, "two dozen", ["twelve", "twelve"])

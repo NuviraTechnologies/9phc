@@ -161,7 +161,7 @@ def _check_number(system: str) -> int | str:
     if "KILL the claim" in system:
         return 9
     for needle, num in (("does this source exist", 1),
-                        ("Open the cited source at the cited place", 2),
+                        ("say what the claim says it says", 2),
                         ("EVERY alias", 3),
                         ("level it lives at", 4),
                         ("later works that cite", 5),
@@ -250,6 +250,13 @@ class RehearsalClient:
             return json.dumps({"claims": _SCRIPTS[self._which][0]})
         rules = _SCRIPTS[self._which][1]
         number = _check_number(system)
+        if number == "?" and json_schema:
+            # A check the router cannot identify means a prompt changed
+            # under it. Defaulting to PASS here once silently greened a
+            # whole rehearsal — scream instead.
+            raise AssertionError(
+                "rehearsal router cannot identify this check prompt; "
+                "a mandate changed — update the needles in _check_number")
         low = user.lower()
         for marker, which, payload in rules:
             if marker in low and (which == "ALL" or which == number):

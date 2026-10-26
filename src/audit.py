@@ -76,7 +76,8 @@ class MetaModelClient:
         what it burned is still on disk, accounted to the token."""
         self._state["ledger"] = str(path)
 
-    def _record_usage(self, model: str, tokens: int) -> None:
+    def _record_usage(self, model: str, tokens: int,
+                      prompt_tokens: int = 0, completion_tokens: int = 0) -> None:
         with self._state["lock"]:
             self._state["calls"] += 1
             self._state["tokens"] += tokens
@@ -86,6 +87,8 @@ class MetaModelClient:
                 line = json.dumps({
                     "ts_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "model": model, "tokens": tokens,
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
                     "run_calls": total_calls, "run_tokens": total_tokens})
                 with open(ledger, "a", encoding="utf-8") as fh:
                     fh.write(line + "\n")
@@ -112,7 +115,9 @@ class MetaModelClient:
                 "Meta Model API call failed: " + (tail[-1] if tail else "unknown error"))
         data = json.loads(proc.stdout)
         usage = data.get("usage") or {}
-        self._record_usage(model, int(usage.get("total_tokens") or 0))
+        self._record_usage(model, int(usage.get("total_tokens") or 0),
+                           int(usage.get("prompt_tokens") or 0),
+                           int(usage.get("completion_tokens") or 0))
         return data["choices"][0]["message"]["content"]
 
 
@@ -522,6 +527,38 @@ def _save_checkpoint(path: Path, document: str, title: str, user_files: str,
 
 # ---------------------------------------------------------------- orchestration
 
+_GATE_STOPWORDS = {
+    "about", "above", "after", "again", "being", "could", "every",
+    "first", "found", "given", "other", "their", "there", "these",
+    "those", "under", "using", "where", "which", "while", "would",
+    "claim", "check", "source", "record", "sources", "records",
+}
+
+
+def _significant_tokens(text: str) -> set[str]:
+    import re as _re
+    return {t for t in _re.findall(r"[a-zà-ÿ]{5,}", (text or "").lower())
+            if t not in _GATE_STOPWORDS}
+
+
+def _accept_correction(claim: Claim, result: CheckResult, correction: str) -> str:
+    """Sanity gate for MODEL-supplied corrections. A correction that
+    shares no significant token with the claim it corrects or with its
+    own check's note is not a correction of this claim — it is stray
+    text (one live run attached a sentence about rebirth and opinion
+    to a claim about a book's languages). Dropped corrections leave
+    the FAIL standing; the verdict then resolves as contradicted-but-
+    uncorrected (Held), which is the honest state. Deterministic
+    corrections (checks 7 and 8) are computed from the document and
+    never pass through this gate."""
+    if not correction:
+        return ""
+    pool = _significant_tokens(claim.text) | _significant_tokens(result.note)
+    if _significant_tokens(correction) & pool:
+        return correction
+    return ""
+
+
 def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> ClaimVerdict:
     checks: list[CheckResult] = []
     corrections: dict[int, str] = {}
@@ -538,6 +575,7 @@ def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> Clai
             continue
         result, correction = run_model_check(client, number, claim, user_files, dossier)
         checks.append(result)
+        correction = _accept_correction(claim, result, correction)
         if correction:
             corrections[number] = correction
 
@@ -553,7 +591,9 @@ def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> Clai
     for cit in claim.citations:
         if cit.identifier:
             from checks_deterministic import doi_shape_check
-            checks.append(doi_shape_check(cit.identifier))
+            shape = doi_shape_check(cit.identifier)
+            if shape is not None:
+                checks.append(shape)
     from checks_deterministic import registry_name_check
     name_result = registry_name_check(claim, records)
     if name_result is not None:
@@ -563,6 +603,7 @@ def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> Clai
 
     result, correction = run_adversarial(client, claim)
     checks.append(result)
+    correction = _accept_correction(claim, result, correction)
     if correction:
         corrections[9] = correction
 
