@@ -19,8 +19,9 @@ His piece. Draft lines in his own framing, offered to use or throw away:
 
 [Opening line, per the organizers' own guidance in #faqs — state what was
 pre-existing and what was built, first thing:]
-"The idea behind this is old — I sketched it years ago. Every line of
-the program you're about to see was written this week."
+"I came up with this idea last week. We didn't write a line of it
+until the kickoff today — every part of the program you're about to
+see was built during this event."
 
 "I'm Richard Vigslist. I've worked with AI for years, and I do research —
 real research, the kind that gets published with your name on it. And I
@@ -62,7 +63,7 @@ The Aldine brief goes in. The report comes back, claim by claim:
 - "And one claim rests on a print-only 1932 bookseller's catalogue that
   no reachable source can open. 9 PHC does not guess. **Held —
   unverified**, and the report names the door: that catalogue. A checker
-  that can say unverified is the only kind whose verified means
+  that cannot say unverified cannot make its verified mean
   anything."
 - Show the run manifest line: "Every run stamps the document's hash, so
   the report can be tied to the exact text it audited."

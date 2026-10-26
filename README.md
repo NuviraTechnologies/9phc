@@ -34,7 +34,7 @@ Peer-reviewed sources and primary records only. A claim is Verified or Corrected
 
 - **Verified** — the claim stands; the backing source is named.
 - **Corrected** — the claim was wrong; the report states what was wrong and what the record actually says.
-- **Held — unverified** — the claim could not be settled from reachable sources. Stated plainly, with the unreachable door named. A checker that can say "unverified" is the only kind whose "verified" means anything.
+- **Held — unverified** — the claim could not be settled from reachable sources. Stated plainly, with the unreachable door named. A checker that cannot say "unverified" cannot make its "verified" mean anything.
 
 ## Stack
 
