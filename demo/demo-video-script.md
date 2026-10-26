@@ -17,6 +17,11 @@ Total target: 3:00.
 
 His piece. Draft lines in his own framing, offered to use or throw away:
 
+[Opening line, per the organizers' own guidance in #faqs — state what was
+pre-existing and what was built, first thing:]
+"The idea behind this is old — I sketched it years ago. Every line of
+the program you're about to see was written this week."
+
 "I'm Richard Vigslist. I've worked with AI for years, and I do research —
 real research, the kind that gets published with your name on it. And I
 can tell you the failure that costs you: hallucinations. AI will hand you
