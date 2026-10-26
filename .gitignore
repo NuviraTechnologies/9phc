@@ -1,0 +1,19 @@
+# Internal working files — not part of the public build
+HANDOFF.md
+docs/rules-compliance.md
+
+# Demo answer keys and scoring expectations — held back so the demo stays a fair test
+demo/*-key.md
+demo/*-key-*.md
+demo/*.expectations.json
+
+# Run artifacts
+demo/*.rehearsal.*
+demo/*.dryrun-smoke.md
+demo/live-run*.log
+*.audit.md
+*.audit.json
+
+# Python
+__pycache__/
+*.pyc
