@@ -271,6 +271,36 @@ def _gather(claim: Claim) -> tuple[list[dict], str]:
         return [], ""
     records: list[dict] = []
     lines: list[str] = []
+
+    # Dossier enrichment: a record with no abstract gives the fidelity
+    # check nothing it may quote, so it must abstain even when the book
+    # is real and catalogued (proven live, 2026-10-26 probes 1-2). When
+    # a record resolves abstract-less, pull its catalogue description
+    # from Open Library (gated there like every record here) and put it
+    # in the dossier, labelled with its source. Cached per title — the
+    # alias sweep often re-resolves the same work.
+    enrich_cache: dict[str, str] = {}
+
+    def _enrich(rec: dict) -> None:
+        if rec.get("abstract"):
+            return
+        key = (rec.get("title") or "").strip().lower()
+        if not key:
+            return
+        if key not in enrich_cache:
+            try:
+                from retrieve import catalogue_description
+                enrich_cache[key] = catalogue_description(
+                    rec["title"], rec.get("authors") or [])
+            except Exception:
+                enrich_cache[key] = ""
+        text = enrich_cache[key]
+        if text:
+            rec["catalogue_note"] = text
+            lines.append(
+                f"Catalogue description (Open Library) for "
+                f"\"{rec['title']}\": {text}")
+
     for cit in claim.citations:
         ident = (cit.identifier or "").strip()
         if ident.lower().startswith(("10.", "doi:", "https://doi.org")):
@@ -282,6 +312,7 @@ def _gather(claim: Claim) -> tuple[list[dict], str]:
                     f"{rec['container']}, {rec['year']}, authors: {', '.join(rec['authors'])}")
                 if rec.get("abstract"):
                     lines.append(f"Abstract of record: {rec['abstract'][:600]}")
+                _enrich(rec)
             else:
                 lines.append(f"DOI {ident} DOES NOT RESOLVE in Crossref or DataCite.")
         if cit.source_title:
@@ -296,6 +327,7 @@ def _gather(claim: Claim) -> tuple[list[dict], str]:
                     f"(DOI {h['doi'] or 'none'}, match score {h['score']:.0f})")
                 if h.get("abstract"):
                     lines.append(f"Abstract of record: {h['abstract'][:600]}")
+                _enrich(h)
             if not hits:
                 lines.append(f"Title search found NO registry record for \"{cit.source_title}\".")
 
@@ -317,6 +349,7 @@ def _gather(claim: Claim) -> tuple[list[dict], str]:
                     f"(DOI {h['doi'] or 'none'})")
                 if h.get("abstract"):
                     lines.append(f"Abstract of record: {h['abstract'][:600]}")
+                _enrich(h)
             if not hits:
                 lines.append(f"Under \"{alias}\": NO registry record found.")
 

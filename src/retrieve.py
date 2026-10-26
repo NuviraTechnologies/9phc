@@ -153,6 +153,55 @@ def title_similarity(a: str, b: str) -> float:
     return jac(toks(core(a)), toks(core(b)))
 
 
+def catalogue_description(title: str, authors: list[str] | None = None) -> str:
+    """The catalogue-description fallback for abstract-less records.
+
+    Crossref records for books routinely carry no abstract, and a
+    dossier line that is only a title gives the fidelity check nothing
+    it may quote — it must abstain even when the book is real and its
+    contents are catalogued. Open Library's work record carries a
+    catalogue description for many such books. The hit is gated by the
+    same title-similarity rule as every other record in this module,
+    with an author-surname preference when several works match.
+    Returns "" on any failure — enrichment never breaks a run and
+    silence here settles nothing, exactly like a missing abstract."""
+    q = urllib.parse.urlencode(
+        {"title": title, "limit": 5,
+         "fields": "title,author_name,first_publish_year,key"})
+    req = urllib.request.Request(f"https://openlibrary.org/search.json?{q}",
+                                 headers=_UA)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            docs = json.loads(resp.read()).get("docs", [])
+    except Exception:
+        return ""
+    gated = [d for d in docs
+             if d.get("key") and title_similarity(title, d.get("title", "")) >= 0.5]
+    if not gated:
+        return ""
+    pick = gated[0]
+    if authors:
+        surnames = {a.split()[-1].lower() for a in authors if a.split()}
+        for d in gated:
+            names = {n.split()[-1].lower() for n in d.get("author_name", [])}
+            if surnames & names:
+                pick = d
+                break
+    try:
+        req = urllib.request.Request(f"https://openlibrary.org{pick['key']}.json",
+                                     headers=_UA)
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            work = json.loads(resp.read())
+    except Exception:
+        return ""
+    desc = work.get("description")
+    if isinstance(desc, dict):
+        desc = desc.get("value")
+    if not isinstance(desc, str):
+        return ""
+    return " ".join(desc.split())[:600]
+
+
 def gated_title_records(title: str, rows: int = 3) -> list[dict]:
     """The one gated path from a title to registry records: Crossref
     first, Open Library when Crossref has nothing that matches — and a

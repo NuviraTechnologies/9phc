@@ -15,7 +15,8 @@ UNSETTLED and you must name the door: the exact source that would decide it.
 
 The SOURCE DOSSIER attached to a claim is the source opened at registry
 level: the catalogue record, the metadata of record, the abstract of record.
-Judge from the record in hand. UNSETTLED requires naming the deciding point
+Judge from the record in hand. A catalogue description in the dossier,
+labelled with its library source, is part of the record in hand. UNSETTLED requires naming the deciding point
 the record in hand is SILENT on — the absence of a fetched full text is not
 by itself a deciding point when the record in hand speaks to the claim. A
 third party's paraphrase still never counts; the source's own record does."""
