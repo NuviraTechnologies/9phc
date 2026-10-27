@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>9 PHC — Audit Stage · Nuvira Technologies</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#11161d; --panel2:#0e1319; --line:#22303c;
+    --ink:#e8f1f6; --dim:#8a97a5; --accent:#59d6e6;
+    --green:#3ddc84; --amber:#ffb454; --slate:#93a5b5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif}
+  header{padding:22px 28px 6px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .brand{letter-spacing:.35em;font-size:12px;color:var(--accent);font-weight:600}
+  h1{font-size:26px;margin:0;font-weight:650}
+  h1 .thin{color:var(--dim);font-weight:400}
+  .sub{color:var(--dim);font-size:14px;margin:2px 28px 0}
+  .wrap{padding:16px 28px 40px;max-width:1180px;margin:0 auto}
+  .controls{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .pills{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+    padding:9px 14px;border-radius:999px;cursor:pointer;font-size:14px}
+  .pill.on{border-color:var(--accent);color:var(--accent)}
+  .seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+  .seg button{background:var(--panel2);color:var(--dim);border:0;padding:9px 16px;
+    cursor:pointer;font-size:14px}
+  .seg button.on{background:var(--accent);color:#06222a;font-weight:700}
+  .seg button:disabled{opacity:.35;cursor:not-allowed}
+  #runBtn{background:var(--accent);color:#06222a;border:0;font-weight:800;
+    padding:11px 26px;border-radius:999px;font-size:15px;cursor:pointer}
+  #runBtn:disabled{opacity:.45;cursor:wait}
+  label.voice{color:var(--dim);font-size:14px;display:flex;gap:6px;align-items:center}
+  textarea{width:100%;margin-top:12px;background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px;
+    min-height:110px;display:none}
+  .status{display:flex;gap:22px;flex-wrap:wrap;margin:16px 2px;color:var(--dim);
+    font-size:14px}
+  .status b{color:var(--ink)}
+  .badge{padding:2px 10px;border-radius:999px;border:1px solid var(--line);font-size:12px}
+  .badge.live{border-color:#ff7a7a;color:#ff9a9a}
+  .card{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--slate);
+    border-radius:12px;padding:14px 16px;margin:10px 0;animation:in .35s ease}
+  @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+  .card.Verified{border-left-color:var(--green)}
+  .card.Corrected{border-left-color:var(--amber)}
+  .chead{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  .cid{color:var(--dim);font-weight:700}
+  .ctext{flex:1;font-size:15.5px;line-height:1.45}
+  .chip{font-size:12.5px;font-weight:800;padding:4px 11px;border-radius:999px;white-space:nowrap}
+  .chip.Verified{background:rgba(61,220,132,.15);color:var(--green)}
+  .chip.Corrected{background:rgba(255,180,84,.15);color:var(--amber)}
+  .chip.Held{background:rgba(147,165,181,.15);color:var(--slate)}
+  .dots{display:flex;gap:5px;margin-top:9px}
+  .dot{width:11px;height:11px;border-radius:50%;background:#2a3642}
+  .dot.pass{background:var(--green)} .dot.fail{background:#ff7a7a}
+  .dot.unsettled{background:#54687a}
+  .detail{margin-top:10px;font-size:14px;line-height:1.5;display:none}
+  .card.open .detail{display:block}
+  .corr{color:var(--amber)} .door{color:var(--slate)}
+  .receipts{color:var(--dim);font-size:12.5px;margin-top:6px}
+  .more{color:var(--accent);font-size:12.5px;cursor:pointer;margin-top:8px;display:inline-block}
+  .summary{background:var(--panel);border:1px solid var(--accent);border-radius:14px;
+    padding:18px;margin-top:18px;display:none}
+  .summary.show{display:block}
+  .big{font-size:44px;font-weight:800;color:var(--accent)}
+  .srow{display:flex;gap:34px;flex-wrap:wrap;align-items:center}
+  .sitem{color:var(--dim);font-size:13px}.sitem b{display:block;color:var(--ink);font-size:19px}
+  .warn{color:#ff9a9a;font-weight:700}
+  .agent{background:var(--panel2);border:1px dashed var(--line);border-radius:14px;
+    padding:16px;margin-top:18px}
+  .agent h3{margin:0 0 8px;font-size:15px;color:var(--accent)}
+  .agent p{color:var(--dim);font-size:13.5px;line-height:1.55;margin:6px 0}
+  code.cmd{display:block;background:#06090d;border:1px solid var(--line);border-radius:10px;
+    padding:12px;font-size:13.5px;color:#bfeef7;overflow-x:auto;white-space:nowrap}
+  .agent button{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:999px;padding:8px 16px;cursor:pointer;font-size:13.5px;margin-top:8px}
+  footer{color:#54687a;font-size:12px;text-align:center;padding:10px 0 26px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">NUVIRA TECHNOLOGIES</div>
+  <h1>9-Point Hallucination Calibration <span class="thin">— 9 PHC · Audit Stage</span></h1>
+</header>
+<p class="sub">Hand it finished research. Nine checks run over every claim. Each claim comes back
+<b>Verified</b>, <b>Corrected</b>, or <b>Held unverified</b> — with receipts. This stage runs the real engine, live.</p>
+
+<div class="wrap">
+  <div class="controls">
+    <div class="pills" id="briefPills"></div>
+    <div class="seg" id="modeSeg">
+      <button data-mode="dry" class="on">DRY · $0</button>
+      <button data-mode="live" id="liveBtn">LIVE · Meta AI</button>
+    </div>
+    <label class="voice"><input type="checkbox" id="voiceChk" checked> Kai announces verdicts</label>
+    <button id="runBtn">RUN THE AUDIT</button>
+    <textarea id="pasteBox" placeholder="Paste a research document here — the audit extracts its checkable claims and runs all nine checks over each one."></textarea>
+  </div>
+
+  <div class="status">
+    <span>State: <b id="stState">ready</b></span>
+    <span>Claims audited: <b id="stClaims">0</b></span>
+    <span>Mode: <span class="badge" id="stMode">DRY — scripted rehearsal, zero spend</span></span>
+    <span>Spend: <b id="stSpend">$0.00</b></span>
+  </div>
+
+  <div id="board"></div>
+
+  <div class="summary" id="summary">
+    <div class="srow">
+      <div><div class="big" id="sumConf">—</div><div class="sitem">document confidence<br>(share of claims Verified, counted in code)</div></div>
+      <div class="sitem">Planted defects caught<b id="sumScore">—</b></div>
+      <div class="sitem">Run spend<b id="sumSpend">—</b></div>
+      <div class="sitem">Wall clock<b id="sumWall">—</b></div>
+      <div class="sitem">Document fingerprint (SHA-256)<b id="sumSha" style="font-size:12px">—</b></div>
+    </div>
+    <div id="sumWarn" class="warn" style="margin-top:10px"></div>
+  </div>
+
+  <div class="agent">
+    <h3>Hand this audit to an AI</h3>
+    <p>9 PHC is agent-callable. Another AI can run the same audit from the command line and
+    consume the findings as JSON — or take the findings of the run above and work from the receipts.</p>
+    <code class="cmd">python3 run_audit.py &lt;your-document.md&gt; --json &nbsp;·&nbsp; repo: github.com/NuviraTechnologies/9phc</code>
+    <button id="copyBtn" disabled>Copy this run's findings JSON</button>
+    <span id="copyNote" style="color:var(--dim);font-size:12.5px"></span>
+  </div>
+</div>
+<footer>9-Point Hallucination Calibration (9 PHC) · © Richard Vigslist · MIT · Demo stage — DRY runs are scripted rehearsals of the real pipeline and are labelled as such; LIVE runs audit for real on Meta AI models.</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+let briefs = [], selBrief = "1", mode = "dry", runId = null, audioQ = [], audioBusy = false;
+
+function playNext(){
+  if(audioBusy || !audioQ.length) return;
+  const src = audioQ.shift(); audioBusy = true;
+  const a = new Audio(src);
+  a.onended = a.onerror = () => { audioBusy = false; playNext(); };
+  a.play().catch(() => { audioBusy = false; playNext(); });
+}
+function announce(id, verdict){
+  if(!$("#voiceChk").checked) return;
+  const v = verdict.startsWith("Verified") ? "verified"
+          : verdict.startsWith("Corrected") ? "corrected" : "held";
+  audioQ.push("voice/claim.mp3", "voice/n" + id + ".mp3", "voice/" + v + ".mp3");
+  playNext();
+}
+
+async function init(){
+  const st = await (await fetch("api/status")).json();
+  briefs = st.briefs;
+  const pills = $("#briefPills");
+  briefs.forEach(b => {
+    const el = document.createElement("button");
+    el.className = "pill" + (b.id === selBrief ? " on" : "");
+    el.textContent = "Brief " + b.id + " · " + b.title.split(" — ")[0];
+    el.title = b.title;
+    el.onclick = () => { selBrief = b.id;
+      document.querySelectorAll(".pill").forEach(p => p.classList.remove("on"));
+      el.classList.add("on"); $("#pasteBox").style.display = "none"; };
+    pills.appendChild(el);
+  });
+  const paste = document.createElement("button");
+  paste.className = "pill"; paste.textContent = "Paste your own";
+  paste.onclick = () => { selBrief = null;
+    document.querySelectorAll(".pill").forEach(p => p.classList.remove("on"));
+    paste.classList.add("on"); $("#pasteBox").style.display = "block"; };
+  pills.appendChild(paste);
+  if(!st.live_ready){
+    $("#liveBtn").disabled = true;
+    $("#liveBtn").textContent = "LIVE · not configured";
+  }
+}
+document.querySelectorAll("#modeSeg button").forEach(b => {
+  b.onclick = () => { if(b.disabled) return; mode = b.dataset.mode;
+    document.querySelectorAll("#modeSeg button").forEach(x => x.classList.remove("on"));
+    b.classList.add("on"); setModeBadge(); };
+});
+function setModeBadge(){
+  const el = $("#stMode");
+  if(mode === "live"){ el.textContent = "LIVE — real audit on Meta AI"; el.classList.add("live"); }
+  else { el.textContent = "DRY — scripted rehearsal, zero spend"; el.classList.remove("live"); }
+}
+
+$("#runBtn").onclick = async () => {
+  $("#board").innerHTML = ""; $("#summary").classList.remove("show");
+  $("#stClaims").textContent = "0"; $("#stSpend").textContent = "$0.00";
+  $("#copyBtn").disabled = true; $("#copyNote").textContent = "";
+  $("#runBtn").disabled = true; $("#stState").textContent = "extracting claims…";
+  const body = { mode };
+  if(selBrief) body.brief = selBrief; else body.text = $("#pasteBox").value;
+  let resp;
+  try { resp = await fetch("api/run", { method:"POST",
+    headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) }); }
+  catch(e){ $("#stState").textContent = "could not reach the stage server"; $("#runBtn").disabled = false; return; }
+  const data = await resp.json();
+  if(!resp.ok){ $("#stState").textContent = data.error || "run refused"; $("#runBtn").disabled = false; return; }
+  runId = data.run_id;
+  const es = new EventSource("api/stream?id=" + runId);
+  let landed = 0;
+  es.addEventListener("claim", ev => {
+    const c = JSON.parse(ev.data); landed++;
+    $("#stClaims").textContent = landed;
+    $("#stState").textContent = "auditing…";
+    addCard(c); announce(c.id, c.verdict);
+  });
+  es.addEventListener("done", ev => {
+    const d = JSON.parse(ev.data); es.close();
+    $("#stState").textContent = "complete";
+    $("#stSpend").textContent = "$" + d.spend.toFixed(4);
+    $("#sumConf").textContent = (d.confidence_percent ?? "—") + "%";
+    $("#sumScore").textContent = d.score ? (d.score.caught + " / " + d.score.total) : "n/a — not a planted brief";
+    $("#sumSpend").textContent = "$" + d.spend.toFixed(4) + (d.mode === "dry" ? " (dry)" : "");
+    $("#sumWall").textContent = d.wall_clock_seconds + "s";
+    $("#sumSha").textContent = d.manifest.document_sha256 ? d.manifest.document_sha256.slice(0, 16) + "…" : "—";
+    $("#sumWarn").textContent = (d.score && d.score.false_corrections.length)
+      ? "False corrections flagged on clean claims: " + d.score.false_corrections.join(" · ") : "";
+    $("#summary").classList.add("show");
+    $("#copyBtn").disabled = false;
+    $("#runBtn").disabled = false;
+    if($("#voiceChk").checked){ audioQ.push("voice/complete.mp3"); playNext(); }
+  });
+  es.addEventListener("error", ev => {
+    try { const d = JSON.parse(ev.data);
+      $("#stState").textContent = "run failed: " + d.message;
+    } catch(e){ /* heartbeat/close noise */ }
+    if(!$("#summary").classList.contains("show")) $("#runBtn").disabled = false;
+  });
+};
+
+function addCard(c){
+  const vkey = c.verdict.startsWith("Verified") ? "Verified"
+             : c.verdict.startsWith("Corrected") ? "Corrected" : "Held";
+  const card = document.createElement("div");
+  card.className = "card " + vkey;
+  const dots = c.checks.map(ch =>
+    `<div class="dot ${ch.outcome}" title="Check ${ch.number} · ${ch.name} — ${ch.outcome}"></div>`).join("");
+  const detail = vkey === "Corrected"
+    ? `<div class="corr"><b>Correction:</b> ${esc(c.correction)}</div>`
+    : vkey === "Held" ? `<div class="door"><b>Held:</b> ${esc(c.held_reason)}</div>` : "";
+  const receipts = c.receipts && c.receipts.length
+    ? `<div class="receipts">Receipts: ${c.receipts.slice(0,4).map(r => esc(r.source)).join(" · ")}</div>` : "";
+  card.innerHTML = `<div class="chead"><span class="cid">#${c.id}</span>
+    <span class="ctext">${esc(c.text)}</span>
+    <span class="chip ${vkey}">${esc(c.verdict)}</span></div>
+    <div class="dots">${dots}</div>
+    <div class="detail">${detail}${receipts}</div>
+    ${(detail || receipts) ? '<span class="more">details</span>' : ''}`;
+  const more = card.querySelector(".more");
+  if(more) more.onclick = () => card.classList.toggle("open");
+  if(detail) card.classList.add("open");
+  $("#board").appendChild(card);
+}
+function esc(s){ const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
+
+init();
+</script>
+</body>
+</html>

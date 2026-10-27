@@ -1,0 +1,960 @@
+{
+  "program": "9-Point Hallucination Calibration (9 PHC)",
+  "document": "The Aldine Press \u2014 a short research brief",
+  "summary": {
+    "claims": 10,
+    "verified": 3,
+    "corrected": 5,
+    "held_unverified": 2,
+    "confidence_percent": 30,
+    "wall_clock_seconds": 35.47
+  },
+  "held_queue": [
+    {
+      "claim_id": 9,
+      "text": "The English translation of The Coming of the Book appeared in 1976.",
+      "doors": [
+        "Maggs Bros catalogue No. 562 (1932)"
+      ],
+      "reason": "Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Door: Maggs Bros catalogue No. 562 (1932)."
+    },
+    {
+      "claim_id": 10,
+      "text": "The variant state of the dolphin-and-anchor device with the anchor's flukes reversed is confirmed in the 1932 Maggs Bros catalogue No. 562, the only record of the variant.",
+      "doors": [
+        "Maggs Bros catalogue No. 562 (1932)"
+      ],
+      "reason": "Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Door: Maggs Bros catalogue No. 562 (1932)."
+    }
+  ],
+  "claims": [
+    {
+      "id": 1,
+      "text": "When Aldus issued his octavo Virgil in 1501, he put the classics into a format a reader could carry.",
+      "verdict": "Verified",
+      "correction": "",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "text": "The italic type cut for the Aldine octavo series was designed by Aldus himself and first used in the Virgil.",
+      "verdict": "Corrected",
+      "correction": "The italic type was designed and cut by Francesco Griffo of Bologna; Aldus commissioned it \u2014 he did not design it himself.",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "fail",
+          "note": "Scripted: the record line \"the italic type was cut by Francesco Griffo\" credits the type's cutter, not Aldus.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "text": "Paper supply in the Venetian lagoon constrained every printer in the city (M. Castellan, 'Paper Supply in the Venetian Lagoon, 1490\u20131510,' Journal of Early Book History 14 (2019): 201\u2013240).",
+      "verdict": "Corrected",
+      "correction": "The cited Castellan article does not exist: no record of it appears in the Journal of Early Book History or in any library catalogue.",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "fail",
+          "note": "Scripted: no such article in any catalogue.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "text": "The Aldine shop produced eighteen Greek editions, fifteen Latin classics, and fourteen vernacular titles \u2014 fifty editions in all across the three series.",
+      "verdict": "Corrected",
+      "correction": "Stated total is 50, but the 3 underlying items rebuild to 47 (three runs, in agreement).",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 7,
+          "name": "Numbers recomputed",
+          "outcome": "fail",
+          "note": "Stated total is 50, but the 3 underlying items rebuild to 47 (three runs, in agreement).",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "The audited document's own stated components",
+          "class": "primary_record",
+          "detail": "Components as written: eighteen, fifteen, fourteen \u2014 they rebuild to 47 (three recomputations, in agreement).",
+          "reference": ""
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "text": "Aldus died in 1515.",
+      "verdict": "Verified",
+      "correction": "",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "text": "The Hypnerotomachia Poliphili has never been translated into English.",
+      "verdict": "Corrected",
+      "correction": "A complete English translation exists: Joscelyn Godwin, Hypnerotomachia Poliphili: The Strife of Love in a Dream (Thames & Hudson, 1999).",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "fail",
+          "note": "Scripted: the alias sweep finds a translation.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "text": "The Hypnerotomachia Poliphili was printed in 1499.",
+      "verdict": "Verified",
+      "correction": "",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "text": "Lucien Fevre and Henri-Jean Martin's The Coming of the Book frames the economics of the early press.",
+      "verdict": "Corrected",
+      "correction": "Name 'Fevre' as written ('Fevre') diverges from its source ('Febvre') at character 3: written has 'v', the source has 'b'. Registry record for the cited source spells it 'Febvre'.",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 8,
+          "name": "Names and IDs letter-checked",
+          "outcome": "fail",
+          "note": "Name 'Fevre' as written ('Fevre') diverges from its source ('Febvre') at character 3: written has 'v', the source has 'b'. Registry record for the cited source spells it 'Febvre'.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Registry record: \"The Coming of the Book\"",
+          "class": "primary_record",
+          "detail": "The record's author of record is Lucien Febvre \u2014 the name is spelled 'Febvre'.",
+          "reference": ""
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "text": "The English translation of The Coming of the Book appeared in 1976.",
+      "verdict": "Held \u2014 unverified",
+      "correction": "",
+      "held_reason": "Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Door: Maggs Bros catalogue No. 562 (1932).",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source is print-only.",
+          "door": "Maggs Bros catalogue No. 562 (1932)"
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source is print-only.",
+          "door": "Maggs Bros catalogue No. 562 (1932)"
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source is print-only.",
+          "door": "Maggs Bros catalogue No. 562 (1932)"
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source is print-only.",
+          "door": "Maggs Bros catalogue No. 562 (1932)"
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source is print-only.",
+          "door": "Maggs Bros catalogue No. 562 (1932)"
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "text": "The variant state of the dolphin-and-anchor device with the anchor's flukes reversed is confirmed in the 1932 Maggs Bros catalogue No. 562, the only record of the variant.",
+      "verdict": "Held \u2014 unverified",
+      "correction": "",
+      "held_reason": "Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Scripted: the deciding source is print-only. Door: Maggs Bros catalogue No. 562 (1932).",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source is print-only.",
+          "door": "Maggs Bros catalogue No. 562 (1932)"
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source is print-only.",
+          "door": "Maggs Bros catalogue No. 562 (1932)"
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source is print-only.",
+          "door": "Maggs Bros catalogue No. 562 (1932)"
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source is print-only.",
+          "door": "Maggs Bros catalogue No. 562 (1932)"
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source is print-only.",
+          "door": "Maggs Bros catalogue No. 562 (1932)"
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source is print-only.",
+          "door": "Maggs Bros catalogue No. 562 (1932)"
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    }
+  ],
+  "manifest": {
+    "program": "9-Point Hallucination Calibration (9 PHC)",
+    "document_title": "The Aldine Press \u2014 a short research brief",
+    "document_sha256": "4e19849982e1115f5c89992e2ca8aa8f04ae1e0a2a7e347cb0a93e3442515c76",
+    "audited_at_utc": "2026-10-27T02:18:02+00:00",
+    "models": {
+      "extraction_and_evidence": "muse-spark-1.3",
+      "fidelity": "muse-wonder-1.0",
+      "adversarial": "muse-wonder-1.0"
+    },
+    "claims_audited": 10
+  }
+}

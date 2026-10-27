@@ -1,0 +1,1028 @@
+{
+  "program": "9-Point Hallucination Calibration (9 PHC)",
+  "document": "Apollo / Saturn V \u2014 a short research brief",
+  "summary": {
+    "claims": 11,
+    "verified": 5,
+    "corrected": 5,
+    "held_unverified": 1,
+    "confidence_percent": 45,
+    "wall_clock_seconds": 2.92
+  },
+  "held_queue": [
+    {
+      "claim_id": 11,
+      "text": "Armstrong's remarks at the closed June 1969 landing-rehearsal debrief were printed only in the Manned Spacecraft Center's internal newsletter, Vol. 8 No. 23, never distributed outside the center.",
+      "doors": [
+        "The Manned Spacecraft Center internal newsletter, Vol. 8 No. 23"
+      ],
+      "reason": "Scripted: the deciding source was never distributed. Scripted: the deciding source was never distributed. Scripted: the deciding source was never distributed. Scripted: the deciding source was never distributed. Scripted: the deciding source was never distributed. Scripted: the deciding source was never distributed. Door: The Manned Spacecraft Center internal newsletter, Vol. 8 No. 23."
+    }
+  ],
+  "claims": [
+    {
+      "id": 1,
+      "text": "The Saturn V stood 363 feet tall and remains the most powerful rocket ever flown operationally.",
+      "verdict": "Verified",
+      "correction": "",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "text": "The Saturn V carried nine crewed missions to the Moon: three that orbited without landing and six that landed \u2014 twelve crewed lunar voyages in all.",
+      "verdict": "Corrected",
+      "correction": "Stated total is 12, but the 2 underlying items rebuild to 9 (three runs, in agreement).",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 7,
+          "name": "Numbers recomputed",
+          "outcome": "fail",
+          "note": "Stated total is 12, but the 2 underlying items rebuild to 9 (three runs, in agreement).",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "The audited document's own stated components",
+          "class": "primary_record",
+          "detail": "Components as written: three, six \u2014 they rebuild to 9 (three recomputations, in agreement).",
+          "reference": ""
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "text": "The rocket's stages were designed entirely by Wernher von Braun's team at Redstone Arsenal, working without industrial contractors.",
+      "verdict": "Corrected",
+      "correction": "Von Braun's team worked at the Marshall Space Flight Center in Huntsville, and the stages were built by industrial contractors: Boeing (S-IC), North American (S-II), Douglas (S-IVB).",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "fail",
+          "note": "Scripted: wrong level and wrong place.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "text": "Apollo 11 landed in the Sea of Tranquility on July 20, 1969.",
+      "verdict": "Verified",
+      "correction": "",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "text": "Edwin 'Buzz' Aldren descended in the lunar module Eagle while Michael Collins remained in orbit aboard Columbia.",
+      "verdict": "Corrected",
+      "correction": "The astronaut's name is Edwin 'Buzz' Aldrin \u2014 Aldrin, with an i.",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "fail",
+          "note": "Scripted: the adversarial pass letter-checks the name.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "text": "Guidance for both spacecraft came from the Apollo Guidance Computer, designed at the MIT Instrumentation Laboratory and built by IBM.",
+      "verdict": "Corrected",
+      "correction": "The Apollo Guidance Computer was built by Raytheon to MIT's design; IBM built the Saturn V instrument unit, not the guidance computer.",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "fail",
+          "note": "Scripted: the record line \"built by the Raytheon Company\" names a different builder.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "text": "The Block II Apollo Guidance Computer carried about 4 kilobytes of RAM.",
+      "verdict": "Verified",
+      "correction": "",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "text": "The onboard flight software effort was led by Margaret Hamilton at the Instrumentation Laboratory.",
+      "verdict": "Verified",
+      "correction": "",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "text": "The 1202 alarm that sounded during the landing was traced afterward to the rendezvous radar flooding the computer with interrupt data.",
+      "verdict": "Verified",
+      "correction": "",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "text": "For the program's safety record, see R. Calloway, 'Lunar Module Descent Dynamics Reconsidered,' Journal of Spacecraft Engineering 7 (1974): 112\u2013131.",
+      "verdict": "Corrected",
+      "correction": "The cited Calloway article does not exist: the Journal of Spacecraft Engineering appears in no catalogue, and no such article is recorded.",
+      "held_reason": "",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "fail",
+          "note": "Scripted: no such article or journal in catalogues.",
+          "door": ""
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "pass",
+          "note": "Scripted fidelity: the record line \"the source states the claim as written\" matches the claim.",
+          "door": ""
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "pass",
+          "note": "Scripted pass: the record supports the claim.",
+          "door": ""
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "text": "Armstrong's remarks at the closed June 1969 landing-rehearsal debrief were printed only in the Manned Spacecraft Center's internal newsletter, Vol. 8 No. 23, never distributed outside the center.",
+      "verdict": "Held \u2014 unverified",
+      "correction": "",
+      "held_reason": "Scripted: the deciding source was never distributed. Scripted: the deciding source was never distributed. Scripted: the deciding source was never distributed. Scripted: the deciding source was never distributed. Scripted: the deciding source was never distributed. Scripted: the deciding source was never distributed. Door: The Manned Spacecraft Center internal newsletter, Vol. 8 No. 23.",
+      "checks": [
+        {
+          "number": 1,
+          "name": "Source existence",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source was never distributed.",
+          "door": "The Manned Spacecraft Center internal newsletter, Vol. 8 No. 23"
+        },
+        {
+          "number": 2,
+          "name": "Source fidelity",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source was never distributed.",
+          "door": "The Manned Spacecraft Center internal newsletter, Vol. 8 No. 23"
+        },
+        {
+          "number": 3,
+          "name": "Alias sweep",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source was never distributed.",
+          "door": "The Manned Spacecraft Center internal newsletter, Vol. 8 No. 23"
+        },
+        {
+          "number": 4,
+          "name": "Right-level check",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source was never distributed.",
+          "door": "The Manned Spacecraft Center internal newsletter, Vol. 8 No. 23"
+        },
+        {
+          "number": 5,
+          "name": "Secondary sweep",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source was never distributed.",
+          "door": "The Manned Spacecraft Center internal newsletter, Vol. 8 No. 23"
+        },
+        {
+          "number": 9,
+          "name": "Adversarial pass",
+          "outcome": "unsettled",
+          "note": "Scripted: the deciding source was never distributed.",
+          "door": "The Manned Spacecraft Center internal newsletter, Vol. 8 No. 23"
+        }
+      ],
+      "receipts": [
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        },
+        {
+          "source": "Rehearsal receipt (scripted peer-reviewed stand-in)",
+          "class": "peer_reviewed",
+          "detail": "Scripted: supports the claim as written.",
+          "reference": "rehearsal"
+        }
+      ]
+    }
+  ],
+  "manifest": {
+    "program": "9-Point Hallucination Calibration (9 PHC)",
+    "document_title": "Apollo / Saturn V \u2014 a short research brief",
+    "document_sha256": "c985b4b3a7c57cccbd9315c27a4d2c93dfa85cd329398d892df8d8f3dadd8ad9",
+    "audited_at_utc": "2026-10-27T02:19:32+00:00",
+    "models": {
+      "extraction_and_evidence": "muse-spark-1.3",
+      "fidelity": "muse-wonder-1.0",
+      "adversarial": "muse-wonder-1.0"
+    },
+    "claims_audited": 11
+  }
+}

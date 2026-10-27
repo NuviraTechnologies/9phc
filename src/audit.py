@@ -33,7 +33,12 @@ from model import CheckOutcome, CheckResult, Citation, Claim, ClaimVerdict, Verd
 from prompts import ADVERSARIAL_SYSTEM_PROMPT, CHECK_PROMPTS, SOURCE_STANDARD
 
 API_BASE = "https://api.meta.ai/v1"
-HELPER = Path.home() / "workspace/custom-connectors/custom.meta-model-api/bin/meta_api.py"
+# The helper path is overridable so the same engine runs on a server
+# with its own helper (stage/meta_api_server.py) under 9PHC_HELPER;
+# unset, it is the connected connector's helper, as always.
+HELPER = Path(os.environ.get(
+    "9PHC_HELPER",
+    str(Path.home() / "workspace/custom-connectors/custom.meta-model-api/bin/meta_api.py")))
 MODEL_EXTRACTION = "muse-spark-1.3"     # structured output: extraction + evidence checks
 MODEL_FIDELITY = "muse-wonder-1.0"      # check 2 (source fidelity): the deep read
 MODEL_ADVERSARIAL = "muse-wonder-1.0"   # adversarial pass + deep reads (ID verified live 2026-10-26)
