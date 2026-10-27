@@ -258,43 +258,82 @@ def _reattach_citations(claims: list[Claim], document: str) -> int:
 
 
 def extract_claims(client: ModelClient, document: str) -> list[Claim]:
-    """Extract checkable claims, chunking long documents and removing
-    exact duplicates (a repeated claim counted twice would corrupt the
-    confidence arithmetic, which counts claims). Malformed entries with
-    no text are skipped, never guessed at. If a chunk's extraction fails
-    outright the run stops loudly — auditing half a document in silence
-    is worse than no audit."""
+    """Extract checkable claims, chunking long documents, running two
+    extraction passes per chunk and union-merging them (a repeated
+    claim counted twice would corrupt the confidence arithmetic, which
+    counts claims; two passes blunt the run-to-run variance of either
+    one alone). Malformed entries with no text are skipped, never
+    guessed at. If both passes on a chunk fail outright the run stops
+    loudly — auditing half a document in silence is worse than no
+    audit."""
     raw_claims: list[dict] = []
     for chunk_no, chunk in enumerate(_chunk_document(document), start=1):
-        raw = _safe_complete(client, MODEL_EXTRACTION, EXTRACTION_SYSTEM_PROMPT,
-                             chunk, json_schema=EXTRACTION_SCHEMA)
-        if raw is None:
+        # Round 5: extraction runs TWICE per chunk and the passes are
+        # unioned below. Extraction is the run's ceiling — across the
+        # live runs it swung 18/16/16/14 claims, with citation
+        # attachment swinging with it — and it is a small share of the
+        # run's cost. Two independent passes over the same text,
+        # merged, hand the checks the fuller claim set every time. One
+        # successful pass is a complete extraction; both failing stops
+        # the run loudly, as a failed extraction always has.
+        passes: list[str] = []
+        for _ in range(2):
+            raw = _safe_complete(client, MODEL_EXTRACTION,
+                                 EXTRACTION_SYSTEM_PROMPT, chunk,
+                                 json_schema=EXTRACTION_SCHEMA)
+            if raw is not None:
+                passes.append(raw)
+        if not passes:
             raise RuntimeError(
-                f"Claim extraction failed on chunk {chunk_no} after two attempts; "
-                "the audit would be incomplete, so it does not proceed.")
-        raw_claims.extend(json.loads(raw).get("claims", []))
+                f"Claim extraction failed on chunk {chunk_no} on both "
+                "extraction passes; the audit would be incomplete, so "
+                "it does not proceed.")
+        for raw in passes:
+            raw_claims.extend(json.loads(raw).get("claims", []))
 
     claims: list[Claim] = []
-    seen: set[str] = set()
+    by_key: dict[str, Claim] = {}
     for c in raw_claims:
         text = (c.get("text") or "").strip()
         if not text:
             continue
         key = _normalize(text)
-        if key in seen:
+        new_citations = [
+            Citation(raw=x.get("raw", ""), source_title=x.get("source_title", ""),
+                     identifier=x.get("identifier", ""), locator=x.get("locator", ""))
+            for x in c.get("citations", []) if isinstance(x, dict)]
+        existing = by_key.get(key)
+        if existing is not None:
+            # Union merge: a claim found by both passes keeps every
+            # citation and alias either pass attached. Numbers and
+            # components fill only when empty — the parts of a sum are
+            # one reading of the text, never a blend of two readings.
+            have = {(x.source_title.lower(), x.identifier.lower(),
+                     x.raw.lower()) for x in existing.citations}
+            for cit in new_citations:
+                k = (cit.source_title.lower(), cit.identifier.lower(),
+                     cit.raw.lower())
+                if k not in have:
+                    existing.citations.append(cit)
+                    have.add(k)
+            for a in c.get("aliases", []):
+                if a not in existing.aliases:
+                    existing.aliases.append(a)
+            if not getattr(existing, "numbers", []) and c.get("numbers"):
+                existing.numbers = c["numbers"]              # type: ignore[attr-defined]
+            if not getattr(existing, "components", []) and c.get("components"):
+                existing.components = c["components"]        # type: ignore[attr-defined]
             continue
-        seen.add(key)
         claim = Claim(
             id=len(claims) + 1,
             text=text,
             claim_type=c.get("claim_type", "general"),
-            citations=[Citation(raw=x.get("raw", ""), source_title=x.get("source_title", ""),
-                                identifier=x.get("identifier", ""), locator=x.get("locator", ""))
-                       for x in c.get("citations", []) if isinstance(x, dict)],
+            citations=new_citations,
             aliases=c.get("aliases", []),
         )
         claim.numbers = c.get("numbers", [])        # type: ignore[attr-defined]
         claim.components = c.get("components", [])  # type: ignore[attr-defined]
+        by_key[key] = claim
         claims.append(claim)
     _reattach_citations(claims, document)
     return claims

@@ -129,7 +129,9 @@ def main() -> int:
         _run(FakeClient(), ckpt_d, doc=DOC)
         client_d = FakeClient()
         _run(client_d, ckpt_d, doc="A completely different document.")
-        assert client_d.extractions == 1, "hash mismatch must mean a fresh extraction"
+        # Round 5: one fresh extraction is TWO passes (dual extraction
+        # + union), so the counter reads 2 where it read 1 before.
+        assert client_d.extractions == 2, "hash mismatch must mean a fresh extraction"
 
         # --- run E: one claim's crash degrades to Held, run completes -------
         real3 = audit.audit_claim

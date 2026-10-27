@@ -57,13 +57,21 @@ CHECK_PROMPTS = {
         "The dossier's search under each alias IS the sweep: if every listed "
         "alias was searched, the sweep is complete and you judge PASS or FAIL "
         "from what it found. UNSETTLED only for an alias that could not be "
-        "searched at all, naming it as the door."),
+        "searched at all, naming it as the door."
+        " COMPLETENESS (round 5): when your correction rests on a "
+        "record the dossier surfaced, name that record IN FULL in "
+        "the correction — its author or translator, its title, its "
+        "year, and its publisher or journal, as the record gives "
+        "them. A correction that gestures ('a translation exists', "
+        "'a later work disagrees') without naming the record it "
+        "rests on is incomplete and does not carry the claim."),
     4: ("Right-level check",
         "Verify the claim at the level it lives at. A claim about a work is "
         "checked against the work's own record — not only the record of one "
         "copy, edition, or witness of it, which may be silent about the work. "
         "If you only reached a lower-level record, say so and mark UNSETTLED "
-        "with the right-level record as the door."),
+        "with the right-level record as the door."
+        " COMPLETENESS (round 5): when your correction rests on a record the dossier surfaced, name that record IN FULL in the correction — its author or translator, its title, its year, and its publisher or journal, as the record gives them. A correction that gestures ('a translation exists', 'a later work disagrees') without naming the record it rests on is incomplete and does not carry the claim."),
     5: ("Secondary sweep",
         "Find later works that cite the claim's source. Later scholarship often "
         "names an edition, a correction, or a retraction in a single line. "
@@ -71,7 +79,8 @@ CHECK_PROMPTS = {
         "contradicts it, quoting the line. When a CITED-BY DOSSIER is "
         "attached, it lists real later works from the OpenAlex and "
         "Semantic Scholar citation graphs: judge from it, and never "
-        "invent a citing work it does not list."),
+        "invent a citing work it does not list."
+        " COMPLETENESS (round 5): when your correction rests on a record the dossier surfaced, name that record IN FULL in the correction — its author or translator, its title, its year, and its publisher or journal, as the record gives them. A correction that gestures ('a translation exists', 'a later work disagrees') without naming the record it rests on is incomplete and does not carry the claim."),
     6: ("Own-files sweep",
         "Search the user's own provided files and prior outputs for anything "
         "bearing on this claim. A contradiction inside the user's own record "
