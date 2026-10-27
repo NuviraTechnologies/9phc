@@ -183,3 +183,28 @@ finally:
     tmp.unlink(missing_ok=True)
 
 print("round-6 guard tests passed")
+
+# ------------------------------------- 1b. merge rule B (short pairs)
+claims_b = extract_claims(_StubClient(),
+                          "Printed in 1499. Published in 1499. Printed "
+                          "in Venice. Printed in Rome.")
+# _StubClient ignores the document; rule B is pinned directly instead:
+from audit import _merge_near_duplicates  # noqa: E402
+from model import Claim as _Claim  # noqa: E402
+pair = _merge_near_duplicates([
+    _Claim(id=1, text="The Hypnerotomachia Poliphili was printed in 1499.",
+           claim_type="factual"),
+    _Claim(id=2, text="The Hypnerotomachia Poliphili was published in 1499.",
+           claim_type="factual"),
+    _Claim(id=3, text="The edition was printed in Venice in 1499.",
+           claim_type="factual"),
+    _Claim(id=4, text="The edition was printed in Rome in 1499.",
+           claim_type="factual"),
+])
+texts_b = [c.text for c in pair]
+assert sum("1499" in t and ("printed" in t or "published" in t)
+           and "Venice" not in t and "Rome" not in t for t in texts_b) == 1, \
+    f"the printed/published pair must merge into one claim: {texts_b}"
+assert any("Venice" in t for t in texts_b) and any("Rome" in t for t in texts_b), \
+    "distinct cities must never merge"
+print("round-6 rule B pins passed")

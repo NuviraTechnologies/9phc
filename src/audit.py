@@ -237,7 +237,7 @@ def _reattach_citations(claims: list[Claim], document: str) -> int:
     for claim in claims:
         if claim.citations:
             continue
-        claim_tokens = _significant_tokens(claim.text)
+        claim_tokens = _merge_tokens(claim.text)
         if len(claim_tokens) < 3:
             continue
         best_i, best_score = -1, 0
@@ -352,9 +352,18 @@ _MERGE_STOPWORDS = {
 }
 
 
-def _significant_tokens(text: str) -> set:
+def _merge_tokens(text: str) -> set:
+    """Token set for similarity work (near-duplicate merge, entity
+    floor): alphabetic words of 5+ characters, minus stopwords — the
+    same shape as the correction gate's _significant_tokens below,
+    kept under its own name because an earlier draft of this merge
+    code was silently shadowed by the gate's function and only the
+    specimens told. Short words and digits stay out of the main
+    similarity: template-like claims differing in a small word or a
+    number must not collapse into one another (the edge-case battery
+    carries sixty such claims and counts them)."""
     return {t for t in _normalize(text).split()
-            if len(t) >= 3 and t not in _MERGE_STOPWORDS}
+            if len(t) >= 5 and t.isalpha() and t not in _MERGE_STOPWORDS}
 
 
 def _merge_near_duplicates(claims: list) -> list:
@@ -371,18 +380,65 @@ def _merge_near_duplicates(claims: list) -> list:
     their similarity sits far below the threshold besides."""
     merged: list = []
     for claim in claims:
-        tokens = _significant_tokens(claim.text)
+        tokens = _merge_tokens(claim.text)
         target = None
         for kept in merged:
-            kept_tokens = _significant_tokens(kept.text)
+            kept_tokens = _merge_tokens(kept.text)
             if not tokens or not kept_tokens:
                 continue
             jaccard = len(tokens & kept_tokens) / len(tokens | kept_tokens)
             if jaccard < 0.72:
-                continue
+                # Rule B (round 6, second specimen): SHORT claims that
+                # differ by a single word swap — "printed in 1499" /
+                # "published in 1499", one fact in two verbs — score
+                # ~0.6 and slipped the main threshold in the round-6
+                # live run, costing a duplicate audit. They merge when
+                # both are short, their number sets agree exactly, and
+                # similarity still clears 0.6. Distinct short claims
+                # (different cities, different numbers) stay apart:
+                # the number-agreement and similarity floors see to it.
+                short_pair = max(len(tokens), len(kept_tokens)) <= 8
+                nums_a = {str(x) for x in getattr(kept, "numbers", []) or []}
+                nums_b = {str(x) for x in getattr(claim, "numbers", []) or []}
+                text_nums_a = set(re.findall(r"\d[\d,]*", kept.text))
+                text_nums_b = set(re.findall(r"\d[\d,]*", claim.text))
+                numbers_agree = (nums_a == nums_b
+                                 and text_nums_a == text_nums_b)
+                # The differing tokens decide: a swap of lowercase
+                # words (printed/published) is one claim rephrased;
+                # a swap touching a capitalized name (Venice/Rome)
+                # is a different claim about a different thing.
+                diff = (tokens ^ kept_tokens)
+                capitalized = {w.lower() for w in
+                               re.findall(r"\b[A-Z][a-z]+\b", kept.text)
+                               + re.findall(r"\b[A-Z][a-z]+\b", claim.text)}
+                name_swap = bool(diff & capitalized)
+                # Rule B similarity counts the numbers the main set
+                # excludes: "printed in 1499" / "published in 1499"
+                # share the year, and the year is a token of the fact.
+                aug_a = kept_tokens | {t for t in _normalize(kept.text).split()
+                                       if t.isdigit()}
+                aug_b = tokens | {t for t in _normalize(claim.text).split()
+                                  if t.isdigit()}
+                jaccard_b = (len(aug_a & aug_b) / len(aug_a | aug_b)
+                             if aug_a and aug_b else 0.0)
+                if not (short_pair and jaccard_b >= 0.6 and numbers_agree
+                        and not name_swap):
+                    continue
             kept_nums = {str(x) for x in getattr(kept, "numbers", []) or []}
             claim_nums = {str(x) for x in getattr(claim, "numbers", []) or []}
             if kept_nums and claim_nums and kept_nums != claim_nums:
+                continue
+            # The same guard on the numbers in the TEXT: two claims
+            # that differ only in a stated number ("Stress claim
+            # number 7" / "number 8"; "fifty tablets" / "five
+            # tablets") are different claims, and the similarity set
+            # carries no digits to tell them apart. Any disagreement
+            # in the digit sequences blocks the merge outright.
+            kept_text_nums = set(re.findall(r"\d[\d,]*", kept.text))
+            claim_text_nums = set(re.findall(r"\d[\d,]*", claim.text))
+            if kept_text_nums and claim_text_nums \
+                    and kept_text_nums != claim_text_nums:
                 continue
             target = kept
             break
@@ -876,7 +932,7 @@ def _adversarial_note_floor(result: CheckResult, claim=None) -> CheckResult:
     # of any record, is not about this claim at all: it degrades to
     # UNSETTLED whatever its length. Genuine kills name their subject.
     if claim is not None:
-        claim_tokens = _significant_tokens(claim.text)
+        claim_tokens = _merge_tokens(claim.text)
         blob = _normalize((result.note or "") + " " + " ".join(
             e.detail for e in result.evidence))
         if claim_tokens and not (claim_tokens & set(blob.split())) \
