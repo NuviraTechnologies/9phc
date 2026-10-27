@@ -71,6 +71,12 @@ Rules:
   'confirmed in Z'), the attribution is part of the claim: keep the cited
   author and work named in the claim text. A claim stripped of the source
   it leans on cannot be audited for that source.
+- Attach to each claim EVERY citation that supports it: the citations in
+  the claim's own sentence AND any citation in the sentence immediately
+  following it. Research prose often states a claim and cites in the next
+  sentence; a claim left citation-less cannot be audited against its
+  source, so when a citation stands anywhere in the claim's sentence or
+  the one after it, the claim carries it.
 - Copy citations EXACTLY as written, including any errors. Never repair them.
 - List every other name, title, or label you know the claim's subject carries.
 - For numerical claims, record the stated total and the component items it sums.

@@ -38,8 +38,19 @@ def main() -> int:
         expectations, clean_markers = EXPECTATIONS, CLEAN_MARKERS
     claims = data["claims"]
     caught, missed = [], []
+    planted_idx: set[int] = set()
     for marker, verdict, term, label in expectations:
         hits = [c for c in claims if marker.lower() in c["text"].lower()]
+        # Every claim matching a planted marker belongs to the planted
+        # family and is judged by its expectation alone. The clean sweep
+        # below must skip them: in these briefs a planted defect lives
+        # inside a sentence that also carries clean facts (the tally
+        # sentence ends "before the founder's death in 1515"; the Fevre
+        # sentence carries the clean 1976 translation date), and the old
+        # sweep flagged the scorer's own correct catches as
+        # FALSE-CORRECTIONs — twice, crying wolf at the exact claims the
+        # run got right (round 3 fix).
+        planted_idx.update(claims.index(c) for c in hits)
         if not hits:
             missed.append(f"{label} — claim not found in extraction")
             continue
@@ -55,8 +66,10 @@ def main() -> int:
                 f"{label} — got verdict {c['verdict']}, correction/held text lacks '{term}'")
     clean_bad = []
     for marker in clean_markers:
-        hits = [c for c in claims if marker in c["text"]]
-        for c in hits:
+        hits = [(i, c) for i, c in enumerate(claims) if marker in c["text"]]
+        for i, c in hits:
+            if i in planted_idx:
+                continue
             if c["verdict"] == "Corrected":
                 clean_bad.append(f"clean claim corrected in error: {c['text'][:70]}…")
     s = data["summary"]

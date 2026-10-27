@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import tempfile
 import threading
@@ -170,6 +171,92 @@ def _normalize(text: str) -> str:
     return _re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
 
 
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z\u201c\"*(])")
+_DOI_IN_TEXT = re.compile(r"10\.\d{4,9}/[^\s\"'<>\]\)]+")
+_QUOTED_TITLE = re.compile(r"[\u201c\"]([^\u201d\"]{8,120})[\u201d\"]")
+_ITALIC_TITLE = re.compile(r"\*([^*]{4,120})\*")
+_YEAR_IN_TEXT = re.compile(r"\b(1[0-9]{3}|20[0-9]{2})\b")
+_CATALOGUE_REF = re.compile(
+    r"((?:\d{4}\s+)?(?:[A-Z][A-Za-z&.'-]+\s+){0,3}catalogue\s+No\.?\s*\d+)",
+    re.IGNORECASE)
+
+
+def _parse_sentence_citations(sentence: str) -> list[Citation]:
+    """Deterministic citation harvest from one sentence of the audited
+    document: quoted and italic titles, DOIs, catalogue references —
+    the shapes research prose actually cites in. What is harvested
+    feeds the same gated retrieval as model-extracted citations, so a
+    span that is not really a source resolves to nothing downstream
+    and settles nothing; it only gives the checks a dossier to open."""
+    found: list[Citation] = []
+    doi_m = _DOI_IN_TEXT.search(sentence)
+    year_m = _YEAR_IN_TEXT.search(sentence)
+    titles: list[str] = []
+    for rx in (_QUOTED_TITLE, _ITALIC_TITLE):
+        for m in rx.finditer(sentence):
+            t = m.group(1).strip().strip(",;: ")
+            if t and t not in titles:
+                titles.append(t)
+    for t in titles:
+        found.append(Citation(
+            raw=t, source_title=t,
+            identifier=doi_m.group(0) if doi_m else "",
+            locator=year_m.group(0) if year_m else ""))
+    if not titles and doi_m:
+        found.append(Citation(raw=doi_m.group(0), identifier=doi_m.group(0)))
+    if not found:
+        cat_m = _CATALOGUE_REF.search(sentence)
+        if cat_m:
+            found.append(Citation(raw=cat_m.group(1).strip()))
+    return found
+
+
+def _reattach_citations(claims: list[Claim], document: str) -> int:
+    """Round 3: extraction's citation discipline varies run to run, and
+    a citation-less claim's dossier is empty — every deciding check
+    abstains and the claim is Held for starvation, not on its merits
+    (round-2 live run: most claims carried no citations). The model
+    pass is now instructed to attach citations from the claim's
+    sentence and the one following; this sweep is the deterministic
+    backstop. For each citation-less claim, find the document sentence
+    it was drawn from (significant-token overlap), harvest citations
+    from that sentence and the next, and attach what is found. Claims
+    the model already cited are never touched. Returns how many
+    claims gained citations."""
+    sentences: list[str] = []
+    for para in document.split("\n"):
+        para = para.strip()
+        if para:
+            sentences.extend(s.strip() for s in _SENTENCE_SPLIT.split(para) if s.strip())
+    attached = 0
+    for claim in claims:
+        if claim.citations:
+            continue
+        claim_tokens = _significant_tokens(claim.text)
+        if len(claim_tokens) < 3:
+            continue
+        best_i, best_score = -1, 0
+        for i, sent in enumerate(sentences):
+            score = len(claim_tokens & _significant_tokens(sent))
+            if score > best_score:
+                best_i, best_score = i, score
+        if best_i < 0 or best_score < 3:
+            continue
+        harvested: list[Citation] = []
+        for j in (best_i, best_i + 1):
+            if j < len(sentences):
+                harvested.extend(_parse_sentence_citations(sentences[j]))
+        seen_keys: set[tuple[str, str]] = set()
+        for cit in harvested:
+            key = (cit.source_title.lower(), cit.identifier.lower())
+            if key not in seen_keys:
+                seen_keys.add(key)
+                claim.citations.append(cit)
+        if claim.citations:
+            attached += 1
+    return attached
+
+
 def extract_claims(client: ModelClient, document: str) -> list[Claim]:
     """Extract checkable claims, chunking long documents and removing
     exact duplicates (a repeated claim counted twice would corrupt the
@@ -209,6 +296,7 @@ def extract_claims(client: ModelClient, document: str) -> list[Claim]:
         claim.numbers = c.get("numbers", [])        # type: ignore[attr-defined]
         claim.components = c.get("components", [])  # type: ignore[attr-defined]
         claims.append(claim)
+    _reattach_citations(claims, document)
     return claims
 
 
@@ -614,6 +702,32 @@ def _accept_correction(claim: Claim, result: CheckResult, correction: str) -> st
     return ""
 
 
+def _adversarial_note_floor(result: CheckResult) -> CheckResult:
+    """Round 3: an adversarial FAIL must show its work in its note. The
+    round-2 live run printed a 'correction' that was a sentence fragment
+    ("Only specialists read it in translation.") off a FAIL whose note
+    was the 9-character string "at-check9" — a degenerate output the
+    receipt rule could not catch, because evidence WAS attached; the
+    reasoning itself was empty. A FAIL whose note is very short AND
+    names no year and quotes no line of the record has not shown its
+    work, whatever its evidence list holds: it degrades to UNSETTLED.
+    A terse note that names a year or quotes the record stands — the
+    floor judges emptiness, not brevity."""
+    if result.outcome is not CheckOutcome.FAIL:
+        return result
+    note = (result.note or "").strip()
+    if len(note) >= 40 or _YEAR_IN_TEXT.search(note) or _QUOTED_SPAN.search(note):
+        return result
+    return CheckResult(
+        check_number=9, check_name="Adversarial pass",
+        outcome=CheckOutcome.UNSETTLED,
+        note=(f"The adversarial pass returned FAIL with a degenerate note "
+              f"({len(note)} characters, no year named, no line of the record "
+              "quoted); a kill that does not show its work in its reasoning "
+              "does not land."),
+        door="The adversarial pass's reasoning, stated in full")
+
+
 def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> ClaimVerdict:
     checks: list[CheckResult] = []
     corrections: dict[int, str] = {}
@@ -670,6 +784,9 @@ def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> Clai
             corrections[8] = name_result.note
 
     result, correction = run_adversarial(client, claim, dossier)
+    result = _adversarial_note_floor(result)
+    if result.outcome is not CheckOutcome.FAIL:
+        correction = ""
     if result.outcome is CheckOutcome.FAIL and not result.evidence:
         # Receipt-bound kills: an adversarial FAIL that names no settling
         # source in its evidence is an assertion, not a kill. It degrades

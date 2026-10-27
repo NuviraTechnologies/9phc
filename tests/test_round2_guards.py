@@ -97,7 +97,14 @@ assert _check(v, 9).outcome is CheckOutcome.UNSETTLED, \
     "evidence-free adversarial FAIL must degrade to UNSETTLED"
 assert v.verdict is not Verdict.CORRECTED
 
-StubClient.adversarial = _res("fail", "The record contradicts the claim.",
+# (Note text updated under round 3: the note floor now requires a
+# standing FAIL to show its work — a bare "the record contradicts the
+# claim" no longer suffices, by design. The evidence rule pinned above
+# is unchanged.)
+StubClient.adversarial = _res("fail", "The record contradicts the claim: "
+                                      "Aldus issued the Virgil at Venice, "
+                                      "and the editions carry the Venetian "
+                                      "imprint, not a Roman one.",
                               correction="The Virgil was issued in 1501 "
                                          "at Venice, not at Rome.")
 v = audit_claim(StubClient(), Claim(7, "Aldus issued his Virgil at Rome."))
