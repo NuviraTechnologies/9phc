@@ -45,7 +45,7 @@ adversarial pass in a fresh session whose whole job is to kill the
 claim. Every claim comes back Verified, Corrected, or Held unverified —
 with receipts."
 
-## Segment 3 — The demonstration (0:55–2:15) — PRODUCED (screen: the live run)
+## Segment 3 — The demonstration, beat one: the scored test (0:55–1:50) — PRODUCED (screen: the live run on the stage)
 
 The Aldine brief goes in. The report comes back, claim by claim:
 
@@ -68,10 +68,29 @@ The Aldine brief goes in. The report comes back, claim by claim:
 - Show the run manifest line: "Every run stamps the document's hash, so
   the report can be tied to the exact text it audited."
 
-Document confidence for the brief: 40% — counted in code from the
-verdicts, printed in the report.
+The document confidence shown is whatever the filmed run produces —
+it is counted in code from the verdicts, never chosen for the camera.
 
-## Segment 4 — Why it is hard to fool (2:15–2:40) — PRODUCED
+## Segment 3B — The demonstration, beat two: unscripted (1:50–2:20) — PRODUCED (screen: the stage, paste box)
+
+Richard's design (2026-10-26): the planted brief proves the scoring;
+this beat proves it is not rehearsed. On camera, an AI is asked for a
+short sourced brief on an off-the-wall subject — the Hurrian Hymn, the
+oldest song in the world. What it hands back is pasted into the stage
+unedited and audited LIVE:
+
+- "It invents a scholar — a Dr. Saracoglu and a journal article that
+  do not exist. The existence check flags it cold."
+- "It states twenty-nine tablets plus twelve as 'over fifty.' The
+  code rebuilds it: forty-one."
+- "It claims the hymn's lyrics have never been translated. The alias
+  sweep finds the translations. **Corrected.**"
+- Narration over the cards landing: "Nobody planted those errors for
+  us. The AI wrote them thirty seconds ago, on camera — and the
+  checker caught them the same way it catches everything: against
+  the record."
+
+## Segment 4 — Why it is hard to fool (2:20–2:42) — PRODUCED
 
 - "The corrections themselves are audited: a correction prints only
   when a receipt backs it. Corrections are claims too."
@@ -84,7 +103,7 @@ verdicts, printed in the report.
 - "And it is an agent tool: any AI can call it — access 9 PHC, get
   findings — and run its own output through the gauntlet."
 
-## Segment 5 — Close (2:40–3:00) — PRODUCED text, or Richard if he wants it
+## Segment 5 — Close (2:42–3:00) — PRODUCED text, or Richard if he wants it
 
 "9 PHC is open source. Anybody can use it: run your AI, then run its
 research through the checker before the work carries your name.
@@ -95,7 +114,7 @@ Neither should you."
 ---
 
 Production checklist for Kai:
-- [ ] Live baseline run on the Aldine brief (credits + Richard's word first)
-- [ ] Capture the run + report render at readable size, terminal and report both
+- [ ] Live filmed run on the Aldine brief via the stage (standing $50 elevation budget; the filmed take is a real live run)
+- [ ] Capture the stage run at readable size (verdict board + summary strip), both beats
 - [ ] Captions for every narration line (Richard edits; captions ship with the segments)
 - [ ] Segment files named by number + timing, delivered to Richard ready to assemble

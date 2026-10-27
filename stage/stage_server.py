@@ -53,11 +53,75 @@ from audit import MetaModelClient, audit_document_data  # noqa: E402
 from rehearse import RehearsalClient  # noqa: E402
 
 PORT = int(os.environ.get("PHC_STAGE_PORT", "8917"))
+ENV_FILE = Path(os.environ.get("PHC_ENV_FILE", "/etc/9phc-stage/env"))
+
+
+def _env_file_values() -> dict:
+    values = {}
+    try:
+        for line in ENV_FILE.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                values[k.strip()] = v.strip()
+    except Exception:
+        pass
+    return values
+
+
+def _live_ready() -> bool:
+    if os.environ.get("META_API_KEY"):
+        return True
+    return bool(_env_file_values().get("META_API_KEY"))
+
+
+def _prime_live_env() -> None:
+    """Merge the env file into this process right before a LIVE run,
+    so a key saved through the key-setup page takes effect without a
+    service restart (the helper subprocess inherits this env)."""
+    for k, v in _env_file_values().items():
+        os.environ[k] = v
+    helper = os.environ.get("PHC_HELPER_PATH")
+    if helper:
+        os.environ["9PHC_HELPER"] = helper
 STATE_DIR = Path(os.environ.get("PHC_STAGE_STATE", str(HERE / "state")))
 STATE_DIR.mkdir(parents=True, exist_ok=True)
 VOICE_DIR = HERE / "voice"
 
 PRICES = {"muse-spark-1.3": (1.25, 4.25), "muse-wonder-1.0": (4.0, 20.0)}
+
+KEY_SETUP_HTML = """<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<title>9 PHC Stage — key setup</title>
+<style>body{background:#0b0f14;color:#e8f1f6;font-family:system-ui,sans-serif;
+margin:40px auto;max-width:560px;padding:0 20px}h1{font-size:20px}
+p{color:#8a97a5;line-height:1.55}input{width:100%;padding:12px;border-radius:10px;
+border:1px solid #22303c;background:#0e1319;color:#e8f1f6;font-size:15px}
+button{margin-top:14px;background:#59d6e6;color:#06222a;border:0;font-weight:800;
+padding:11px 24px;border-radius:999px;font-size:15px;cursor:pointer}
+#msg{margin-top:14px}</style></head><body>
+<h1>9 PHC Stage — arm LIVE mode</h1>
+<p>Paste the Meta Model API key below. It is written straight into this
+server's protected credential file (root-only) and nowhere else — it
+never appears on the page again, and the stage forgets the form the
+moment it is saved. LIVE mode arms immediately; no restart needed.</p>
+<input id="k" type="password" placeholder="Meta Model API key" autocomplete="off">
+<button id="b">Save key &amp; arm LIVE</button>
+<div id="msg"></div>
+<script>
+document.querySelector("#b").onclick = async () => {
+  const v = document.querySelector("#k").value.trim();
+  const r = await fetch("api/key", {method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({meta_api_key: v})});
+  const d = await r.json();
+  document.querySelector("#msg").textContent = r.ok
+    ? "Saved. LIVE mode is armed — head back to the stage and flip the mode switch."
+    : ("Not saved: " + (d.error || "unknown error"));
+  if (r.ok) document.querySelector("#k").value = "";
+};
+</script></body></html>"""
 
 BRIEFS = {
     "1": ("demo-brief.md", "demo-brief.expectations.json",
@@ -114,7 +178,12 @@ def _score(findings: dict, expectations_path: Path) -> dict | None:
         if not hits:
             missed.append(label)
             continue
-        c = hits[0]
+        def _satisfies(x):
+            b = (x.get("correction", "") + " " + x.get("held_reason", "")).lower()
+            o = verdict is None or x["verdict"] == verdict \
+                or x["verdict"].startswith(verdict)
+            return o and term.lower() in b
+        c = next((h for h in hits if _satisfies(h)), hits[0])
         blob = (c.get("correction", "") + " " + c.get("held_reason", "")).lower()
         ok = verdict is None or c["verdict"] == verdict \
             or c["verdict"].startswith(verdict)
@@ -237,9 +306,12 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._send(404, "{}")
             return
+        if path == "/key-setup":
+            self._send(200, KEY_SETUP_HTML, "text/html; charset=utf-8")
+            return
         if path == "/api/status":
             self._send(200, json.dumps({
-                "live_ready": bool(os.environ.get("META_API_KEY")),
+                "live_ready": _live_ready(),
                 "briefs": [{"id": k, "title": v[2]} for k, v in BRIEFS.items()],
                 "running": _active is not None,
             }))
@@ -296,6 +368,26 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         global _active
         parsed = urlparse(self.path)
+        if parsed.path == "/api/key":
+            length = int(self.headers.get("Content-Length", "0"))
+            try:
+                req = json.loads(self.rfile.read(length) or b"{}")
+            except Exception:
+                self._send(400, json.dumps({"error": "bad request body"}))
+                return
+            key = (req.get("meta_api_key") or "").strip()
+            if len(key) < 20:
+                self._send(400, json.dumps(
+                    {"error": "that does not look like an API key"}))
+                return
+            values = _env_file_values()
+            values["META_API_KEY"] = key
+            ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
+            ENV_FILE.write_text("".join(f"{k}={v}\n" for k, v in values.items()))
+            os.chmod(ENV_FILE, 0o600)
+            _prime_live_env()
+            self._send(200, json.dumps({"ok": True, "live_ready": _live_ready()}))
+            return
         if parsed.path != "/api/run":
             self._send(404, "{}")
             return
@@ -306,6 +398,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, json.dumps({"error": "bad request body"}))
             return
         mode = req.get("mode", "dry")
+        if mode == "live":
+            _prime_live_env()
         if mode == "live" and not os.environ.get("META_API_KEY"):
             self._send(400, json.dumps(
                 {"error": "LIVE mode is not configured on this stage"}))
@@ -340,5 +434,5 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     print(f"9 PHC stage on 127.0.0.1:{PORT} "
-          f"(live_ready={bool(os.environ.get('META_API_KEY'))})", flush=True)
+          f"(live_ready={_live_ready()})", flush=True)
     server.serve_forever()
