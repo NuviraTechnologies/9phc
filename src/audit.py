@@ -697,9 +697,33 @@ def _accept_correction(claim: Claim, result: CheckResult, correction: str) -> st
     low = correction.lower()
     if any(marker in low for marker in _BOILERPLATE_MARKERS):
         return ""
-    if _significant_tokens(correction) & _significant_tokens(claim.text):
+    # Gate v3 — an additive restatement is not a correction. The
+    # round-3 live run 'corrected' the true claim "The Hypnerotomachia
+    # Poliphili was published in 1499" into the same statement with
+    # "first (printed) by Aldus Manutius" added: every significant
+    # token of the claim carried over, nothing was negated, nothing
+    # was replaced — the claim was embellished, not contradicted. A
+    # correction that keeps (all but at most one of) the claim's own
+    # tokens and contains no negation or contradiction marker is a
+    # restatement; it is dropped, and the FAIL resolves as
+    # contradicted-but-uncorrected. Real corrections negate, strike,
+    # or replace — each of the run's genuine corrections carries such
+    # a marker or sheds the claim's tokens, and passes.
+    claim_tokens = _significant_tokens(claim.text)
+    corr_tokens = _significant_tokens(correction)
+    if claim_tokens and len(claim_tokens - corr_tokens) <= 1 \
+            and not any(m in low for m in _NEGATION_MARKERS):
+        return ""
+    if corr_tokens & claim_tokens:
         return correction
     return ""
+
+
+_NEGATION_MARKERS = (
+    "not ", "n't", "never", "strike", "wrong", "incorrect", "in fact",
+    "actually", "rather than", "instead", "does not", "did not",
+    "cannot", "no longer", "false", "nonexistent", "no such",
+)
 
 
 def _adversarial_note_floor(result: CheckResult) -> CheckResult:
@@ -717,6 +741,24 @@ def _adversarial_note_floor(result: CheckResult) -> CheckResult:
         return result
     note = (result.note or "").strip()
     if len(note) >= 40 or _YEAR_IN_TEXT.search(note) or _QUOTED_SPAN.search(note):
+        # A FAIL whose own note concedes the record in hand is silent
+        # on the claim — and names no year and quotes no line in its
+        # place — has described an absence, not landed a kill. The
+        # round-3 specimen failed a true publication claim while
+        # conceding "the source dossier attached to the claim itself
+        # is silent on the claim"; a concession is not a contradiction.
+        low = note.lower()
+        if any(m in low for m in _SILENCE_CONCESSIONS) \
+                and not _YEAR_IN_TEXT.search(note) \
+                and not _QUOTED_SPAN.search(note):
+            return CheckResult(
+                check_number=9, check_name="Adversarial pass",
+                outcome=CheckOutcome.UNSETTLED,
+                note=("The adversarial pass returned FAIL while conceding "
+                      "its record does not speak to the claim, and named no "
+                      "contradicting record in its place; a concession is "
+                      "not a kill."),
+                door="The contradicting record, named or quoted")
         return result
     return CheckResult(
         check_number=9, check_name="Adversarial pass",
@@ -726,6 +768,85 @@ def _adversarial_note_floor(result: CheckResult) -> CheckResult:
               "quoted); a kill that does not show its work in its reasoning "
               "does not land."),
         door="The adversarial pass's reasoning, stated in full")
+
+
+_SILENCE_CONCESSIONS = (
+    "silent on the claim", "silent on this claim",
+    "does not speak to the claim", "no line in the record speaks to",
+    "record is silent on the claim",
+)
+
+
+_CITATION_SURNAME_STOPWORDS = {
+    "journal", "press", "review", "studies", "history", "books", "book",
+    "early", "modern", "volume", "quarterly", "annual", "proceedings",
+    "transactions", "bulletin", "magazine", "catalogue", "library",
+}
+
+
+def _citation_keys(cit: Citation) -> tuple[set[str], set[str]]:
+    """(surname tokens, title tokens) identifying a citation in prose.
+    Surnames: capitalized tokens in the raw citation that are not part
+    of its title and not publication furniture (Journal, Press, ...)."""
+    title_tokens = _significant_tokens(cit.source_title or "")
+    surnames: set[str] = set()
+    for tok in re.findall(r"[A-Z][a-zà-ÿ]{3,}", cit.raw or ""):
+        low = tok.lower()
+        if low not in _CITATION_SURNAME_STOPWORDS and low not in title_tokens:
+            surnames.add(low)
+    return surnames, title_tokens
+
+
+def _claim_leans_on(claim: Claim, cit: Citation) -> bool:
+    """A claim leans on a citation when its own text names the cited
+    author or the cited work — the extraction rule has always made the
+    attribution part of such a claim. A citation attached from a
+    neighboring sentence (the round-3 attachment rule) that the claim
+    never names is furniture, not a load-bearing source."""
+    surnames, title_tokens = _citation_keys(cit)
+    claim_tokens = set(_normalize(claim.text).split())
+    if surnames & claim_tokens:
+        return True
+    return len(title_tokens & _significant_tokens(claim.text)) >= 2
+
+
+def _existence_binding(claim: Claim, result: CheckResult) -> CheckResult:
+    """Round 4: check 1 may fail a claim over a dead citation only when
+    the claim leans on it. The round-3 live run attached the invented
+    Castellan citation to four neighboring claims that never name him;
+    check 1 failed all four on its non-existence and they were Held
+    for a citation they never made. When the condemned citation is
+    identifiable in the FAIL's own note/evidence and the claim leans
+    on none of the condemned citations, the FAIL degrades to
+    UNSETTLED: the dead citation is recorded on the claim, and settles
+    nothing about it. An unattributable FAIL stands as returned —
+    the binding never voids what it cannot attribute."""
+    if result.check_number != 1 or result.outcome is not CheckOutcome.FAIL:
+        return result
+    if not claim.citations:
+        return result
+    blob = _normalize((result.note or "") + " " + " ".join(
+        e.detail + " " + e.source_name for e in result.evidence))
+    blob_tokens = set(blob.split())
+    condemned: list[Citation] = []
+    for cit in claim.citations:
+        surnames, title_tokens = _citation_keys(cit)
+        if surnames & blob_tokens or \
+                len(title_tokens & _significant_tokens(blob)) >= 2:
+            condemned.append(cit)
+    if not condemned or any(_claim_leans_on(claim, c) for c in condemned):
+        return result
+    dead = condemned[0]
+    return CheckResult(
+        check_number=1, check_name=result.check_name,
+        outcome=CheckOutcome.UNSETTLED,
+        note=(f"Check 1 established that the attached citation "
+              f"\"{(dead.raw or dead.source_title)[:80]}\" does not resolve. "
+              "The claim's text does not lean on that citation — it names "
+              "neither its author nor its work — so the claim is not failed "
+              "for it. The dead citation stands recorded; it settles "
+              "nothing about this claim."),
+        door="A source this claim actually leans on, examined directly")
 
 
 def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> ClaimVerdict:
@@ -743,6 +864,10 @@ def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> Clai
         if number == 6 and not user_files.strip():
             continue
         result, correction = run_model_check(client, number, claim, user_files, dossier)
+        if number == 1:
+            result = _existence_binding(claim, result)
+            if result.outcome is not CheckOutcome.FAIL:
+                correction = ""
         if number == 2 and result.outcome in (CheckOutcome.PASS, CheckOutcome.FAIL) \
                 and not _QUOTED_SPAN.search(result.note or ""):
             # Quote-or-abstain, enforced: a fidelity verdict that quotes
