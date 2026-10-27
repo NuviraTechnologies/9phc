@@ -151,7 +151,9 @@ DEMO2_RULES = [
                                             "Flight Center in Huntsville, and the stages were "
                                             "built by industrial contractors: Boeing (S-IC), "
                                             "North American (S-II), Douglas (S-IVB).")),
-    ("aldren", 9, _res("fail", "Scripted: the adversarial pass letter-checks the name.",
+    ("aldren", 9, _res("fail", "Scripted adversarial: the astronaut in this "
+                               "claim, Edwin Aldren of the lunar module Eagle, "
+                               "is spelled Aldrin in the record.",
                        correction="The astronaut's name is Edwin 'Buzz' Aldrin — "
                                   "Aldrin, with an i.")),
 ]
