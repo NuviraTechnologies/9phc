@@ -40,6 +40,15 @@ REPO = HERE.parent
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "demo"))
 
+# systemd Environment= names cannot start with a digit, so the unit
+# passes the helper path as PHC_HELPER_PATH; translate it to the
+# engine's 9PHC_HELPER before the engine module is imported (the
+# engine reads it once, at import). The API key itself travels in the
+# service environment and is inherited by the helper subprocess.
+_helper = os.environ.get("PHC_HELPER_PATH")
+if _helper:
+    os.environ["9PHC_HELPER"] = _helper
+
 from audit import MetaModelClient, audit_document_data  # noqa: E402
 from rehearse import RehearsalClient  # noqa: E402
 
