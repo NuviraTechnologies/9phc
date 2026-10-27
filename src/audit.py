@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Protocol
 
-from checks_deterministic import check_numbers, letter_check
+from checks_deterministic import check_numbers
 from concurrent.futures import ThreadPoolExecutor
 from engine import render_report, resolve_verdict, verdicts_to_dict
 from extraction import EXTRACTION_SCHEMA, EXTRACTION_SYSTEM_PROMPT
@@ -674,8 +674,19 @@ def _source_dossier(claim: Claim) -> str:
     return _gather(claim)[1]
 
 
+FIDELITY_RETRY_INSTRUCTION = """
+
+RETRY — READ CAREFULLY: a previous attempt at this check returned a
+verdict whose note quoted no line of the record, and under the
+quote-or-abstain rule that verdict was void. In your note, quote the
+deciding line of the record VERBATIM (the exact words, in quotation
+marks) before you state your verdict — or return "unsettled" if no
+line of the record in hand decides this claim."""
+
+
 def run_model_check(client: ModelClient, number: int, claim: Claim,
-                    user_files: str = "", dossier: str = "") -> tuple[CheckResult, str]:
+                    user_files: str = "", dossier: str = "",
+                    extra_instruction: str = "") -> tuple[CheckResult, str]:
     name, mandate = CHECK_PROMPTS[number]
     user = f"CLAIM: {claim.text}\nALIASES: {', '.join(claim.aliases) or '(none listed)'}\n"
     user += "CITATIONS:\n" + ("\n".join(f"- {c.raw}" for c in claim.citations) or "(none)")
@@ -684,7 +695,7 @@ def run_model_check(client: ModelClient, number: int, claim: Claim,
     if number == 6:
         user += f"\n\nUSER FILES:\n{user_files or '(none provided)'}"
     model = MODEL_FIDELITY if number == 2 else MODEL_EXTRACTION
-    raw = _safe_complete(client, model, f"{mandate}\n\n{SOURCE_STANDARD}\n\nFill EVERY field of the schema; use an empty string when a field does not apply.",
+    raw = _safe_complete(client, model, f"{mandate}\n\n{SOURCE_STANDARD}\n\nFill EVERY field of the schema; use an empty string when a field does not apply.{extra_instruction}",
                          user, json_schema=_CHECK_RESULT_SCHEMA)
     if raw is None:
         return _unsettled(number, name, "the model call failed (timeout or API error)"), ""
@@ -750,7 +761,6 @@ def _claim_from_dict(d: dict) -> Claim:
 
 
 def _verdict_to_dict(cv: ClaimVerdict) -> dict:
-    from model import Evidence as _Ev  # noqa: F401  (kept for symmetry)
     return {
         "claim": _claim_to_dict(cv.claim),
         "verdict": cv.verdict.value,
@@ -1072,6 +1082,23 @@ def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> Clai
         if number == 6 and not user_files.strip():
             continue
         result, correction = run_model_check(client, number, claim, user_files, dossier)
+        if number == 2 and result.outcome in (CheckOutcome.PASS, CheckOutcome.FAIL) \
+                and not _QUOTED_SPAN.search(result.note or ""):
+            # One quote-demanded retry (hardening probe, 2026-10-27):
+            # a fidelity verdict without a quoted line is void under
+            # quote-or-abstain, but the failure is often presentational
+            # — the model read the record and summarized instead of
+            # quoting. The probe showed the retry engaging exactly
+            # there (a voided PASS re-returned WITH the deciding line
+            # quoted) and still abstaining where the record is silent.
+            # The rule itself does not move: a retry that also fails
+            # to quote is void, same as the first attempt.
+            retry, retry_correction = run_model_check(
+                client, number, claim, user_files, dossier,
+                extra_instruction=FIDELITY_RETRY_INSTRUCTION)
+            if retry.outcome in (CheckOutcome.PASS, CheckOutcome.FAIL) \
+                    and _QUOTED_SPAN.search(retry.note or ""):
+                result, correction = retry, retry_correction
         if number == 1:
             result = _existence_binding(claim, result)
             if result.outcome is not CheckOutcome.FAIL:
@@ -1087,7 +1114,8 @@ def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> Clai
                 note=("Fidelity returned a verdict without quoting the line "
                       "of the record that decides the claim; under the "
                       "quote-or-abstain rule the verdict is void."),
-                door="The cited source's own record, quoted line in hand")
+                door="The cited source's own record, quoted line in hand",
+                correction=result.correction)
             correction = ""
         checks.append(result)
         correction = _accept_correction(claim, result, correction)
@@ -1130,7 +1158,8 @@ def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> Clai
             note=("The adversarial pass asserted a contradiction but named "
                   "no settling source in its evidence; an unnamed kill "
                   "does not land."),
-            door="The settling record the attack relied on, named")
+            door="The settling record the attack relied on, named",
+            correction=result.correction)
         correction = ""
     checks.append(result)
     correction = _accept_correction(claim, result, correction)
