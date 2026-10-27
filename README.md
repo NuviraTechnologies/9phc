@@ -49,7 +49,28 @@ A timed-out or failed model call never kills a run: the affected check reports u
 
 ## Call it from your own AI
 
-9 PHC is a separate program on purpose: your AI writes at full speed, then calls the audit and gets findings back. Nothing is baked into generation, so nothing slows generation down. The audit ships as a command-line program and as an agent tool (`run_9phc_audit`) that any AI system can invoke — hand it a finished draft, get back the verdict report and structured findings. The tool definition is in `docs/agent-tool-schema.json`; wiring notes are in `docs/integration.md`.
+9 PHC is a separate program on purpose: your AI writes at full speed, then calls the audit and gets findings back. Nothing is baked into generation, so nothing slows generation down. The audit ships as a command-line program and as an agent tool (`run_9phc_audit`) that any AI system can invoke — hand it a finished draft, get back the verdict report and structured findings. The findings format and the calling pattern are documented in `docs/AGENT.md`.
+
+## The live record
+
+9 PHC has been run live against real documents throughout its
+build — three demonstration briefs carrying planted defects it is
+never told about, and one unscripted brief written half an hour
+before its run. It scores 6/6 on the planted sets across all three
+briefs, caught an invented citation and an invented tablet
+catalogue number cold on the unscripted brief, and has recorded
+zero false corrections in its last five runs. The complete record —
+every run, its score, its spend — is in `docs/RUN-RECORD.md`.
+
+## Documentation
+
+- `docs/HOW-IT-WORKS.md` — the full account: pipeline, the nine
+  checks, the verdict rules and gates, the survival engineering.
+- `docs/RUN-RECORD.md` — every live run, with scores and spend.
+- `docs/OPERATING.md` — running it: the command line, the demo
+  stage, costs, troubleshooting.
+- `docs/AGENT.md` — calling 9 PHC from an agent; the findings
+  format.
 
 ## License
 
