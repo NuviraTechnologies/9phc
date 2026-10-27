@@ -164,7 +164,8 @@ def verdicts_to_dict(verdicts: list[ClaimVerdict], document_title: str = "Audite
                 "held_reason": cv.held_reason,
                 "checks": [
                     {"number": ch.check_number, "name": ch.check_name,
-                     "outcome": ch.outcome.value, "note": ch.note, "door": ch.door}
+                     "outcome": ch.outcome.value, "note": ch.note, "door": ch.door,
+                     "correction": ch.correction}
                     for ch in cv.checks
                 ],
                 "receipts": [

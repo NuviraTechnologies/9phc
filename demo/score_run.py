@@ -54,7 +54,17 @@ def main() -> int:
         if not hits:
             missed.append(f"{label} — claim not found in extraction")
             continue
-        c = hits[0]
+        # Best match, not first match (round 6): a plant is caught when
+        # ANY claim bearing its marker satisfies the expectation. A
+        # first-hit sampler graded a textbook Held as a miss in the
+        # round-5 live run because a sibling claim shared the marker.
+        def _satisfies(c):
+            b = (c.get("correction", "") + " " + c.get("held_reason", "")).lower()
+            o = verdict is None or c["verdict"] == verdict or c["verdict"].startswith(verdict)
+            if c["verdict"] in ("Corrected", "Held") and not o:
+                o = False
+            return o and term.lower() in b
+        c = next((h for h in hits if _satisfies(h)), hits[0])
         blob = (c.get("correction", "") + " " + c.get("held_reason", "")).lower()
         ok_verdict = verdict is None or c["verdict"] == verdict or c["verdict"].startswith(verdict)
         if c["verdict"] in ("Corrected", "Held") and not ok_verdict:

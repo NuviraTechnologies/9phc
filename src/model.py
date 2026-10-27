@@ -67,6 +67,7 @@ class CheckResult:
     note: str = ""                # what the check found, plainly
     door: str = ""                # if UNSETTLED: the unreachable source that decides it
     evidence: list[Evidence] = field(default_factory=list)
+    correction: str = ""          # the check's raw correction, kept for the record even when a gate drops it
 
 
 @dataclass

@@ -340,8 +340,75 @@ def extract_claims(client: ModelClient, document: str) -> list[Claim]:
         claim.components = c.get("components", [])  # type: ignore[attr-defined]
         by_key[key] = claim
         claims.append(claim)
+    claims = _merge_near_duplicates(claims)
     _reattach_citations(claims, document)
     return claims
+
+
+_MERGE_STOPWORDS = {
+    "the", "and", "for", "with", "was", "were", "are", "has", "had",
+    "his", "her", "its", "that", "this", "from", "into", "before",
+    "after", "under", "over", "been", "being", "first", "one", "two",
+}
+
+
+def _significant_tokens(text: str) -> set:
+    return {t for t in _normalize(text).split()
+            if len(t) >= 3 and t not in _MERGE_STOPWORDS}
+
+
+def _merge_near_duplicates(claims: list) -> list:
+    """Round 6: the union of two extraction passes also surfaces
+    near-duplicate claims — the same statement in two phrasings
+    (round 5's brief carried the 'most beautiful printed book' claim
+    twice) and shreds of one claim audited as standalones. A repeated
+    claim costs a full audit and corrupts the document arithmetic, so
+    claims whose significant-token sets are near-identical merge:
+    fuller text wins, citations and aliases union, numbers and
+    components fill only when empty. Claims carrying DIFFERENT
+    number sets never merge — the tally's components (eighteen Greek,
+    fifteen Latin) are distinct claims with distinct numbers, and
+    their similarity sits far below the threshold besides."""
+    merged: list = []
+    for claim in claims:
+        tokens = _significant_tokens(claim.text)
+        target = None
+        for kept in merged:
+            kept_tokens = _significant_tokens(kept.text)
+            if not tokens or not kept_tokens:
+                continue
+            jaccard = len(tokens & kept_tokens) / len(tokens | kept_tokens)
+            if jaccard < 0.72:
+                continue
+            kept_nums = {str(x) for x in getattr(kept, "numbers", []) or []}
+            claim_nums = {str(x) for x in getattr(claim, "numbers", []) or []}
+            if kept_nums and claim_nums and kept_nums != claim_nums:
+                continue
+            target = kept
+            break
+        if target is None:
+            merged.append(claim)
+            continue
+        if len(claim.text) > len(target.text):
+            target.text = claim.text
+        have = {(c.source_title.lower(), c.identifier.lower(),
+                 c.raw.lower()) for c in target.citations}
+        for cit in claim.citations:
+            k = (cit.source_title.lower(), cit.identifier.lower(),
+                 cit.raw.lower())
+            if k not in have:
+                target.citations.append(cit)
+                have.add(k)
+        for a in claim.aliases:
+            if a not in target.aliases:
+                target.aliases.append(a)
+        if not getattr(target, "numbers", []) and getattr(claim, "numbers", []):
+            target.numbers = claim.numbers          # type: ignore[attr-defined]
+        if not getattr(target, "components", []) and getattr(claim, "components", []):
+            target.components = claim.components    # type: ignore[attr-defined]
+    for i, c in enumerate(merged, start=1):
+        c.id = i
+    return merged
 
 
 # ---------------------------------------------------------------- model checks
@@ -385,6 +452,7 @@ def _parse_check(number: int, name: str, raw: str) -> tuple[CheckResult, str]:
         evidence=[Evidence(e["source_name"], SourceClass(e["source_class"]),
                            e["detail"], e.get("reference", ""))
                   for e in d.get("evidence", [])],
+        correction=d.get("correction", ""),
     )
     return result, d.get("correction", "")
 
@@ -635,6 +703,7 @@ def _verdict_to_dict(cv: ClaimVerdict) -> dict:
         "checks": [{
             "check_number": ch.check_number, "check_name": ch.check_name,
             "outcome": ch.outcome.value, "note": ch.note, "door": ch.door,
+            "correction": ch.correction,
             "evidence": [{"source_name": e.source_name,
                           "source_class": e.source_class.value,
                           "detail": e.detail, "reference": e.reference}
@@ -648,6 +717,7 @@ def _verdict_from_dict(d: dict) -> ClaimVerdict:
     checks = [CheckResult(
         check_number=ch["check_number"], check_name=ch["check_name"],
         outcome=_CO(ch["outcome"]), note=ch.get("note", ""), door=ch.get("door", ""),
+        correction=ch.get("correction", ""),
         evidence=[_Ev(e["source_name"], _SC(e["source_class"]), e["detail"],
                       e.get("reference", ""))
                   for e in ch.get("evidence", [])])
@@ -738,6 +808,20 @@ def _accept_correction(claim: Claim, result: CheckResult, correction: str) -> st
     from the document and never pass through this gate."""
     if not correction:
         return ""
+    # Gate v4 — completeness against the record (checks 3, 4, 5: the
+    # record-based correctors). Round 5's doctrine tells those checks
+    # to name the correcting record in full; the gate now enforces
+    # the load-bearing part of it. When the check's own evidence
+    # carries a dated record and the correction names no year at all,
+    # the correction is an assertion about a record it declines to
+    # identify — dropped, and the FAIL resolves
+    # contradicted-but-uncorrected. Corrections from other checks are
+    # untouched: existence speaks in absences, fidelity in quotations.
+    if result.check_number in (3, 4, 5) \
+            and not _YEAR_IN_TEXT.search(correction) \
+            and any(_YEAR_IN_TEXT.search(e.detail or "")
+                    for e in result.evidence):
+        return ""
     low = correction.lower()
     if any(marker in low for marker in _BOILERPLATE_MARKERS):
         return ""
@@ -770,7 +854,7 @@ _NEGATION_MARKERS = (
 )
 
 
-def _adversarial_note_floor(result: CheckResult) -> CheckResult:
+def _adversarial_note_floor(result: CheckResult, claim=None) -> CheckResult:
     """Round 3: an adversarial FAIL must show its work in its note. The
     round-2 live run printed a 'correction' that was a sentence fragment
     ("Only specialists read it in translation.") off a FAIL whose note
@@ -783,6 +867,29 @@ def _adversarial_note_floor(result: CheckResult) -> CheckResult:
     floor judges emptiness, not brevity."""
     if result.outcome is not CheckOutcome.FAIL:
         return result
+    # Round 6 — the entity floor. The round-5 live run's adversarial
+    # pass twice returned long, fluent FAIL notes about entirely
+    # different papers (cookie research, an Afghan primer, Ausonius's
+    # epigram) against Aldine claims. Length did not expose them; the
+    # gates happened to contain them. A FAIL note that shares not one
+    # significant token with the claim it condemns, and quotes no line
+    # of any record, is not about this claim at all: it degrades to
+    # UNSETTLED whatever its length. Genuine kills name their subject.
+    if claim is not None:
+        claim_tokens = _significant_tokens(claim.text)
+        blob = _normalize((result.note or "") + " " + " ".join(
+            e.detail for e in result.evidence))
+        if claim_tokens and not (claim_tokens & set(blob.split())) \
+                and not _QUOTED_SPAN.search(result.note or ""):
+            return CheckResult(
+                check_number=9, check_name="Adversarial pass",
+                outcome=CheckOutcome.UNSETTLED,
+                note=("The adversarial pass returned FAIL with a note "
+                      "that shares no subject matter with the claim and "
+                      "quotes no record; a kill must be about the claim "
+                      "it condemns."),
+                door="An adversarial reading of this claim itself",
+                correction=result.correction)
     note = (result.note or "").strip()
     if len(note) >= 40 or _YEAR_IN_TEXT.search(note) or _QUOTED_SPAN.search(note):
         # A FAIL whose own note concedes the record in hand is silent
@@ -802,7 +909,8 @@ def _adversarial_note_floor(result: CheckResult) -> CheckResult:
                       "its record does not speak to the claim, and named no "
                       "contradicting record in its place; a concession is "
                       "not a kill."),
-                door="The contradicting record, named or quoted")
+                door="The contradicting record, named or quoted",
+                correction=result.correction)
         return result
     return CheckResult(
         check_number=9, check_name="Adversarial pass",
@@ -953,7 +1061,7 @@ def audit_claim(client: ModelClient, claim: Claim, user_files: str = "") -> Clai
             corrections[8] = name_result.note
 
     result, correction = run_adversarial(client, claim, dossier)
-    result = _adversarial_note_floor(result)
+    result = _adversarial_note_floor(result, claim)
     if result.outcome is not CheckOutcome.FAIL:
         correction = ""
     if result.outcome is CheckOutcome.FAIL and not result.evidence:
