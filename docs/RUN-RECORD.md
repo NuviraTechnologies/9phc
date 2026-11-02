@@ -52,3 +52,22 @@ adversarial pass had corrected the component against real history
 with an itemized enumeration — the component was true only inside
 the brief's invented tally. The program grades against the record,
 not against a document's internal fiction.
+
+## The filmed runs — November 1, 2026
+
+The three runs filmed live for the hackathon demo video, run back to
+back on the public audit stage in a single afternoon, unedited engine
+output (the video speeds the wall clock; nothing else is altered):
+
+| Run | Claims | Verified | Corrected | Held | Spend | Note |
+|---|---|---|---|---|---|---|
+| Brief 1, Aldine (filmed) | 22 | 0 | 10 | 12 | $6.4065 | Stage board: planted defects caught 6/6 |
+| Brief 2, Apollo / Saturn V (filmed) | 26 | 0 | 8 | 18 | $5.2276 | Same engine, second document, no retuning |
+| Brief 3, Semmelweis (filmed) | 22 | 0 | 5 | 17 | $5.1380 | Same engine, third document, no retuning |
+
+The Verified column reads zero across the filmed runs for the reason
+stated above: these briefs are error-dense by design, and a claim
+certifies only when every check passes with receipts. What the filmed
+runs show is the catching side working live on camera — corrections
+with itemized receipts, and claims the record could not settle Held
+unverified rather than waved through.
