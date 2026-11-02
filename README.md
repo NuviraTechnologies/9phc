@@ -22,7 +22,7 @@ It is not a detector (it does not guess whether AI wrote something) and it is no
 6. **Own-files sweep** — the user's own prior files and outputs are searched for anything that contradicts the claim.
 7. **Numbers recomputed** — every count, total, and figure is rebuilt from the underlying items, three times. The three runs must agree. *(Deterministic code — no model.)*
 8. **Names and IDs letter-checked** — every name, DOI, and identifier is verified character by character against its source. *(Deterministic code — no model.)*
-9. **Adversarial pass** — a separate checker instance that did not produce the answer, running in a fresh context with a debunk mandate, tries to kill each surviving claim from outside sources.
+9. **Adversarial pass** — a separate audit instance that did not produce the answer, running in a fresh context with a debunk mandate, tries to kill each surviving claim from outside sources.
 
 **The independence rule:** the adversarial pass never shares a session or context with the work being audited. A model grading its own homework in the same conversation satisfies nothing.
 
@@ -34,7 +34,7 @@ Peer-reviewed sources and primary records only. A claim is Verified or Corrected
 
 - **Verified** — the claim stands; the backing source is named.
 - **Corrected** — the claim was wrong; the report states what was wrong and what the record actually says.
-- **Held — unverified** — the claim could not be settled from reachable sources. Stated plainly, with the unreachable door named. A checker that cannot say "unverified" cannot make its "verified" mean anything.
+- **Held — unverified** — the claim could not be settled from reachable sources. Stated plainly, with the unreachable door named. A calibration that cannot say "unverified" cannot make its "verified" mean anything.
 
 ## Stack
 
@@ -74,6 +74,6 @@ every run, its score, its spend — is in `docs/RUN-RECORD.md`.
 
 ## License
 
-Open source, MIT License (see `LICENSE`). Anybody may use it: run your AI's research through the checker before the work carries your name.
+Open source, MIT License (see `LICENSE`). Anybody may use it: run your AI's research through the calibration before the work carries your name.
 
 Built for the Meta Global AI Developer Hackathon (Oct 26 – Nov 4, 2026), Indie track.
