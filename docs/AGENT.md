@@ -14,10 +14,6 @@ python3 run_audit.py <document.md> --json
 Returns (stdout) the Markdown report; writes `<document>.audit.json`
 — the findings — beside the document.
 
-On the demo stage, the same findings for a finished run are served
-at `/api/findings?id=<run_id>`, and the stage's hand-off panel
-shows the exact call for the run on screen.
-
 ## The findings document
 
 ```json
