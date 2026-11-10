@@ -5,19 +5,41 @@ Usage:
   python3 run_audit.py <document.md> [--title "Title"] [--files user-files.txt]
   python3 run_audit.py <document.md> --dry-run     # scripted client, zero spend
 
-Live runs go through the connected Meta Model API connector
-(custom.meta-model-api); the key stays in the Secure Vault and this
-program never handles it. The report prints to stdout and is also
-written next to the input as <name>.audit.md.
+Live runs call the Meta Model API with YOUR OWN key. Put it in a file
+named .env beside this script (copy .env.example) or export it:
+
+  META_API_KEY=<your key>
+
+The key is read from the environment only. It is never written into
+the report, the findings, or the spend ledger. The report prints to
+stdout and is also written next to the input as <name>.audit.md.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
+
+
+def _load_dotenv() -> None:
+    """Read KEY=VALUE lines from a .env beside this script into the
+    environment (values already in the environment win). Stdlib only —
+    the package carries no dependencies."""
+    env_path = Path(__file__).resolve().parent / ".env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip().strip("'\"")
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
@@ -47,6 +69,24 @@ def main() -> int:
     ap.add_argument("--fresh", action="store_true",
                     help="Discard any checkpoint and run the audit from zero")
     args = ap.parse_args()
+
+    _load_dotenv()
+    if not args.dry_run and not os.environ.get("META_API_KEY"):
+        print(
+            "9 PHC needs your own Meta Model API key to run live.\n"
+            "Nothing has been called and nothing has been spent.\n\n"
+            "Set it one of two ways:\n"
+            "  1. Copy .env.example to .env beside run_audit.py and put "
+            "your key in it, or\n"
+            "  2. export META_API_KEY=<your key>\n\n"
+            "Get a key at dev.meta.ai. The key stays on your machine: it "
+            "is read from\n"
+            "the environment, sent only to api.meta.ai, and never written "
+            "into any file\n"
+            "this program produces.\n"
+            "To watch the pipeline run with no key and no spend: --dry-run",
+            file=sys.stderr)
+        return 2
 
     doc_path = Path(args.document)
     document = doc_path.read_text()
