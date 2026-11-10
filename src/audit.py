@@ -33,12 +33,14 @@ from model import CheckOutcome, CheckResult, Citation, Claim, ClaimVerdict, Verd
 from prompts import ADVERSARIAL_SYSTEM_PROMPT, CHECK_PROMPTS, SOURCE_STANDARD
 
 API_BASE = "https://api.meta.ai/v1"
-# The helper path is overridable so the same engine runs on a server
-# with its own helper (stage/meta_api_server.py) under 9PHC_HELPER;
-# unset, it is the connected connector's helper, as always.
+# The helper is the small script that carries the user's own API key
+# to the Meta Model API. It ships with this package (meta_api.py, next
+# to run_audit.py) and reads the key from the META_API_KEY environment
+# variable. The path is overridable under 9PHC_HELPER for deployments
+# that run their own helper.
 HELPER = Path(os.environ.get(
     "9PHC_HELPER",
-    str(Path.home() / "workspace/custom-connectors/custom.meta-model-api/bin/meta_api.py")))
+    str(Path(__file__).resolve().parent.parent / "meta_api.py")))
 MODEL_EXTRACTION = "muse-spark-1.3"     # structured output: extraction + evidence checks
 MODEL_FIDELITY = "muse-wonder-1.0"      # check 2 (source fidelity): the deep read
 MODEL_ADVERSARIAL = "muse-wonder-1.0"   # adversarial pass + deep reads (ID verified live 2026-10-26)
@@ -51,19 +53,20 @@ class ModelClient(Protocol):
 
 
 class MetaModelClient:
-    """Live client for the Meta Model API, via the registered connector.
+    """Live client for the Meta Model API, via the bundled helper.
 
-    The API key lives in the Secure Vault connector (custom.meta-model-api)
-    and reaches requests through the connector helper's surrogate exchange.
-    This program never sees, stores, or logs the key. Standard API mode
-    only — contributor-mode models are never used.
+    The helper sends the user's own key — read from the META_API_KEY
+    environment variable — as a bearer header to api.meta.ai. The key
+    is never written into this package, a run's files, or a log by this
+    program. Standard API mode only — contributor-mode models are
+    never used.
     """
 
     TOKEN_CEILING = 1_500_000  # hard spend brake: total token ceiling across all calls in a run
 
     def __init__(self, _state: dict | None = None):
         if not HELPER.exists():
-            raise RuntimeError(f"Connector helper not found at {HELPER} — setup is incomplete.")
+            raise RuntimeError(f"API helper not found at {HELPER} — the package is incomplete (meta_api.py ships beside run_audit.py).")
         if _state is None:
             _state = {"tokens": 0, "calls": 0, "ledger": None,
                       "lock": threading.Lock()}
