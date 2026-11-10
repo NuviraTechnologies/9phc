@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>9 PHC — 9-Point Hallucination Calibration · Nuvira Technologies</title>
+<meta name="description" content="9 PHC is a post-research audit program: nine verification checks over a finished piece of AI-assisted research, every claim Verified, Corrected, or Held — unverified, with receipts. Runs in your browser, on your own API key.">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!--
+  9 PHC — WEB VERSION (single-file port of the 9 PHC engine)
+
+  This page is a faithful port of the canonical 9 PHC flow (the
+  command-line program in this repository: run_audit.py + src/):
+  claim extraction (two passes, union-merged), the registry retrieval
+  pre-pass (Crossref, DataCite, Open Library, OpenAlex, Semantic
+  Scholar), the nine checks with the engine's own prompts, the
+  correction gates, the quote-or-abstain rule, the adversarial note
+  floors, the receipt rules, and the verdict engine — same wording,
+  same rules, same report.
+
+  What differs from the full program, stated plainly:
+  1. Retrieval is registry-only. A browser cannot open arbitrary
+     source pages (the registries below send CORS headers; most
+     publisher pages do not), so the checks judge from the registry
+     dossiers — records, abstracts of record, catalogue descriptions,
+     citation graphs — and never from fetched full text. The
+     command-line program's dossier is built the same way; its
+     fetch_text path for arbitrary pages has no browser equivalent.
+  2. No checkpointing or resume. A run that stops starts over.
+  3. Claims are audited three at a time (the program uses four
+     workers); results are identical, wall clock differs.
+  4. The User-Agent the registries see is the browser's own; the
+     polite-pool contact is the optional address the user types,
+     sent as the registries' mailto parameter where they accept one.
+  5. If the API rejects a structured-output schema, the call is
+     retried once without it and the reply parsed as JSON directly.
+
+  The user's API key is used only as the bearer header on requests
+  from this browser to api.meta.ai. It is never sent to this site,
+  never stored, and never written into the report or the findings.
+-->
+<style>
+:root{
+  --bg:#0b0e1a;
+  --bg-2:#0e1226;
+  --surface:rgba(255,255,255,.03);
+  --surface-2:rgba(255,255,255,.055);
+  --border:rgba(201,162,39,.22);
+  --border-hi:rgba(201,162,39,.48);
+  --text:#e8e6df;
+  --muted:#b9bdc9;
+  --faint:#9aa0b4;
+  --gold:#c9a227;
+  --gold-lt:#e6c65c;
+  --green:#5ec97a;
+  --amber:#e0a458;
+  --red:#e0655f;
+  --font-display:'Orbitron',Arial,sans-serif;
+  --font-body:'Inter',Arial,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --radius:18px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--muted);font-family:var(--font-body);font-size:1.02rem;line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:rgba(201,162,39,.4);color:#fff}
+a{color:var(--gold-lt);text-decoration:none}
+a:hover{color:var(--gold)}
+.container{max-width:1080px;margin:0 auto;padding:0 24px}
+main,section,header,footer{position:relative;z-index:1}
+
+/* ---------- nav (mirrors nuviratechnologies.io) ---------- */
+.navbar{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:rgba(11,14,26,.92);border-bottom:1px solid var(--border)}
+.nav-logo{font-family:var(--font-display);font-weight:800;letter-spacing:3px;color:var(--text);font-size:1rem}
+.nav-logo span{color:var(--gold)}
+.nav-menu{display:flex;gap:34px;list-style:none;align-items:center;margin:0}
+.nav-link{color:var(--muted);font-size:.82rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;transition:color .25s}
+.nav-link:hover{color:var(--text)}
+.nav-link a{color:inherit}
+.nav-link.active{color:var(--gold-lt)}
+@media(max-width:860px){.nav-menu{gap:18px}.nav-link{font-size:.72rem}}
+
+/* ---------- page head ---------- */
+.page-head{padding:150px 0 8px;text-align:center}
+.kicker{color:var(--gold);letter-spacing:4px;font-size:.78rem;font-weight:700;text-transform:uppercase;font-family:var(--font-body);margin-bottom:18px}
+.page-title{font-family:var(--font-display);font-weight:800;color:var(--text);font-size:clamp(2.4rem,6vw,4rem);letter-spacing:.05em;line-height:1.1}
+.page-sub{font-family:Georgia,serif;font-style:italic;font-size:1.25rem;color:#f2ecd9;margin-top:10px}
+.page-desc{max-width:70ch;margin:22px auto 0;font-size:1.03rem;line-height:1.8}
+.glow-bar{height:1px;max-width:1080px;margin:34px auto 0;background:linear-gradient(90deg,transparent,rgba(201,162,39,.4),transparent)}
+
+/* ---------- sections & cards ---------- */
+.section{padding:38px 0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:30px 30px 26px;margin-bottom:26px}
+.card h2{font-family:Arial,sans-serif;font-size:.95rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+.card p{margin-bottom:14px}
+.small{font-size:.9rem;color:var(--faint)}
+.checks-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 30px;font-size:.96rem}
+@media(max-width:760px){.checks-grid{grid-template-columns:1fr}}
+.checks-grid b{color:var(--text);font-weight:600}
+
+/* ---------- form ---------- */
+label{display:block;font-size:.82rem;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);margin:20px 0 8px}
+label:first-of-type{margin-top:0}
+input[type=text],input[type=password],input[type=email],textarea{width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--font-body);font-size:.98rem;padding:12px 14px;line-height:1.6}
+textarea{font-family:Georgia,serif;font-size:1.02rem;resize:vertical}
+input:focus,textarea:focus{outline:none;border-color:var(--border-hi)}
+#docText{min-height:240px}
+#ownFiles{min-height:90px}
+.drop-hint{border:1.5px dashed rgba(201,162,39,.35);border-radius:10px;padding:10px 14px;margin-top:10px;font-size:.88rem;color:var(--faint);text-align:center;transition:all .25s}
+.drop-hint.over{border-color:var(--gold);color:var(--gold-lt);background:rgba(201,162,39,.06)}
+.keyline{border-left:3px solid var(--gold);padding:6px 0 6px 18px;color:#f2ecd9;font-size:1rem;margin:18px 0 4px}
+.row{display:flex;gap:22px;flex-wrap:wrap}
+.row>div{flex:1 1 260px}
+.checkline{display:flex;gap:10px;align-items:flex-start;margin-top:20px;font-size:.94rem}
+.checkline input{margin-top:5px}
+#runBtn{display:inline-block;margin-top:26px;background:var(--gold);color:#14100a;border:none;border-radius:10px;font-family:var(--font-display);font-weight:700;letter-spacing:2px;font-size:.92rem;padding:15px 38px;cursor:pointer;transition:all .25s var(--ease)}
+#runBtn:hover:not(:disabled){background:var(--gold-lt)}
+#runBtn:disabled{opacity:.45;cursor:wait}
+#statusLine{margin-top:16px;font-family:var(--font-mono);font-size:.85rem;color:var(--gold-lt);min-height:1.4em}
+#progressLog{font-family:var(--font-mono);font-size:.8rem;color:var(--faint);max-height:180px;overflow-y:auto;margin-top:8px;white-space:pre-wrap}
+.err{color:var(--red)}
+
+/* ---------- results ---------- */
+#results{display:none}
+.summary-strip{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.stat{flex:1 1 140px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;text-align:center}
+.stat .n{font-family:var(--font-display);font-size:1.7rem;font-weight:800;color:var(--text)}
+.stat .l{font-size:.74rem;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin-top:4px}
+.stat.v .n{color:var(--green)} .stat.c .n{color:var(--amber)} .stat.h .n{color:var(--faint)}
+.conf-line{font-size:1rem;color:var(--text);margin:14px 0 4px}
+.claim-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 24px;margin-bottom:18px}
+.claim-head{display:flex;justify-content:space-between;gap:14px;align-items:baseline;flex-wrap:wrap}
+.claim-title{font-family:var(--font-mono);font-size:.82rem;color:var(--faint);letter-spacing:1px}
+.verdict{font-family:var(--font-display);font-weight:700;letter-spacing:1.5px;font-size:.9rem;text-transform:uppercase}
+.verdict.Verified{color:var(--green)} .verdict.Corrected{color:var(--amber)} .verdict.Held{color:var(--faint)}
+.claim-text{font-family:Georgia,serif;font-size:1.06rem;color:var(--text);border-left:3px solid var(--gold);padding:2px 0 2px 16px;margin:12px 0}
+.correction{color:var(--amber);margin:8px 0}
+.whyheld{color:var(--muted);margin:8px 0}
+.check-list{list-style:none;margin:12px 0 0;font-size:.92rem}
+.check-list li{padding:5px 0;border-top:1px solid rgba(255,255,255,.05)}
+.oc{font-family:var(--font-mono);font-size:.78rem;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.oc.pass{color:var(--green)} .oc.fail{color:var(--red)} .oc.unsettled{color:var(--faint)}
+.receipts{margin-top:10px;font-size:.88rem;color:var(--faint)}
+.receipts div{margin:3px 0}
+.dl-row{display:flex;gap:14px;flex-wrap:wrap;margin:20px 0 6px}
+.dl-btn{background:transparent;border:1px solid var(--border-hi);color:var(--gold-lt);border-radius:10px;padding:11px 22px;font-size:.88rem;font-weight:600;letter-spacing:1px;cursor:pointer}
+.dl-btn:hover{background:rgba(201,162,39,.08)}
+footer{border-top:1px solid var(--border);margin-top:30px;padding:30px 0 44px;text-align:center;font-size:.88rem;color:var(--faint)}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-logo">NUVIRA<span>TECH</span></div>
+  <ul class="nav-menu">
+    <li class="nav-link"><a href="index.html">Home</a></li>
+    <li class="nav-link"><a href="nte.html">NTE</a></li>
+    <li class="nav-link"><a href="research.html">Research</a></li>
+    <li class="nav-link"><a href="research.html#articles">Articles</a></li>
+    <li class="nav-link active"><a href="9phc.html">9 PHC</a></li>
+    <li class="nav-link"><a href="/links">Links</a></li>
+  </ul>
+</nav>
+
+<main class="container">
+
+  <header class="page-head">
+    <div class="kicker">Nuvira Technologies — Research Tools</div>
+    <h1 class="page-title">9 PHC</h1>
+    <div class="page-sub">9-Point Hallucination Calibration</div>
+    <p class="page-desc">A post-research audit program. Paste in a finished piece of AI-assisted research — a draft, a report, a set of claims with citations. 9 PHC extracts every checkable claim, runs each one through nine verification checks, and returns a verdict for every claim: <b style="color:var(--green)">Verified</b>, <b style="color:var(--amber)">Corrected</b>, or <b>Held — unverified</b>, with receipts. It is not a detector and it is not a guardrail. It audits what was said, fixes what is wrong, and shows the receipts.</p>
+    <div class="glow-bar"></div>
+  </header>
+
+  <section class="section">
+    <div class="card">
+      <h2>Run a calibration</h2>
+
+      <label for="docTitle">Document title</label>
+      <input type="text" id="docTitle" value="Audited document">
+
+      <label for="docText">Your research or article text</label>
+      <textarea id="docText" placeholder="Paste the finished document here — claims, citations and all."></textarea>
+      <div class="drop-hint" id="dropHint">Drop a .md or .txt file here, or <a href="#" id="filePick">choose a file</a><input type="file" id="fileInput" accept=".md,.txt,.markdown" style="display:none"></div>
+
+      <label for="ownFiles">Your own files (optional — feeds check 6, the own-files sweep)</label>
+      <textarea id="ownFiles" placeholder="Paste prior notes or outputs of yours that bear on the document. Leave empty and check 6 does not run."></textarea>
+
+      <div class="keyline">Your API key stays in your browser. It is never sent to us, never stored, and never logged — calls go from your browser straight to the Meta Model API.</div>
+
+      <div class="row">
+        <div>
+          <label for="apiKey">Your Meta Model API key</label>
+          <input type="password" id="apiKey" placeholder="From your own account at dev.meta.ai" autocomplete="off">
+        </div>
+        <div>
+          <label for="contactEmail">Contact email for the registries (optional)</label>
+          <input type="email" id="contactEmail" placeholder="Yours — Crossref/OpenAlex polite pools ask for one" autocomplete="off">
+        </div>
+      </div>
+      <p class="small" style="margin-top:12px">Provider: the Meta Model API (api.meta.ai) — Muse Spark 1.3 for extraction and the evidence checks, Muse Wonder 1.0 for source fidelity and the adversarial pass. Source retrieval is free and keyless: Crossref, DataCite, Open Library, OpenAlex, Semantic Scholar. A typical short research brief (20–27 claims) cost $3.50–$7.20 at the prices recorded in the project's run record — an estimate from that record, not a quote. Every run reports its own calls and tokens, and a 1.5M-token ceiling stops a runaway run.</p>
+
+      <div class="checkline">
+        <input type="checkbox" id="demoMode">
+        <span><b>Demo mode</b> — run the pipeline against a scripted stand-in client. No key needed, nothing is spent, and the output shows the shape of a report, not an audit.</span>
+      </div>
+
+      <button id="runBtn">RUN THE CALIBRATION</button>
+      <div id="statusLine"></div>
+      <div id="progressLog"></div>
+    </div>
+
+    <div class="card" id="results">
+      <h2>The calibration</h2>
+      <div class="summary-strip" id="summaryStrip"></div>
+      <div class="conf-line" id="confLine"></div>
+      <p class="small" id="tierNote">Tier note: 9 PHC is the third tier of truth constraint — a post-research audit over finished work. Verdicts rest on peer-reviewed sources and primary records only.</p>
+      <div class="dl-row">
+        <button class="dl-btn" id="dlReport">Download the report (.md)</button>
+        <button class="dl-btn" id="dlFindings">Download the findings (.json)</button>
+      </div>
+      <div id="heldQueue"></div>
+      <div id="claimCards"></div>
+      <p class="small" id="manifestLine"></p>
+    </div>
+
+    <div class="card">
+      <h2>The nine checks</h2>
+      <div class="checks-grid">
+        <div><b>1 · Source existence</b> — every cited source must be shown to exist.</div>
+        <div><b>2 · Source fidelity</b> — the cited source, opened, must say what the claim says it says.</div>
+        <div><b>3 · Alias sweep</b> — the subject is searched under every other name it carries.</div>
+        <div><b>4 · Right-level check</b> — a claim is verified at the level it lives at.</div>
+        <div><b>5 · Secondary sweep</b> — later works citing the source are checked.</div>
+        <div><b>6 · Own-files sweep</b> — your own files are searched for contradictions.</div>
+        <div><b>7 · Numbers recomputed</b> — every total rebuilt from its items, three times. Plain code, no model.</div>
+        <div><b>8 · Names and IDs letter-checked</b> — character by character against the source. Plain code, no model.</div>
+        <div><b>9 · Adversarial pass</b> — a fresh instance with a debunk mandate tries to kill each claim.</div>
+      </div>
+      <p style="margin-top:16px">Source standard: peer-reviewed sources and primary records only. Crowd-edited tertiary pages never settle a claim; at most they point toward a door. A claim that cannot be settled is Held, with the unreachable door named — a calibration that cannot say "unverified" cannot make its "verified" mean anything.</p>
+    </div>
+
+    <div class="card">
+      <h2>What this page cannot do</h2>
+      <p>The full program — the command-line version in the open-source repo — opens source pages directly when a registry record is not enough. A browser cannot do that: most publisher pages refuse cross-origin reads, so this page judges from the registry dossiers (the record, the abstract of record, the catalogue description, the citation graphs). It also keeps no checkpoint: a stopped run starts over. Prompts, checks, gates, and verdict rules are the program's own, unchanged.</p>
+      <p>If your browser blocks the calls to api.meta.ai (some networks and browser setups refuse cross-origin API calls), the run will report the model endpoint as its door. The fix is the local version: clone the repo, add your key, run it on your own machine.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    9-Point Hallucination Calibration (9 PHC) · © 2026 Richard Vigslist · Nuvira Technologies · MIT License<br>
+    Open source — the full program, its run record, and this page's source are in the 9 PHC repository.
+  </div>
+</footer>
+<script>
+"use strict";
+/* =====================================================================
+   9 PHC web engine — a faithful port of the canonical program
+   (src/model.py, src/prompts.py, src/extraction.py, src/retrieve.py,
+   src/checks_deterministic.py, src/engine.py, src/audit.py).
+   Prompts, gates, and verdict rules are the program's own, unchanged.
+   ===================================================================== */
+const SOURCE_STANDARD = "Source standard (hard rule): a claim may be supported or\ncontradicted only by a peer-reviewed source or a primary record (the cited\nsource itself, opened; an official catalogue or record). Wikipedia and other\ncrowd-edited tertiary pages NEVER settle a claim \u2014 at most they point toward\na source that does. If the deciding source cannot be opened, the check is\nUNSETTLED and you must name the door: the exact source that would decide it.\n\nThe SOURCE DOSSIER attached to a claim is the source opened at registry\nlevel: the catalogue record, the metadata of record, the abstract of record.\nJudge from the record in hand. A catalogue description in the dossier,\nlabelled with its library source, is part of the record in hand. UNSETTLED requires naming the deciding point\nthe record in hand is SILENT on \u2014 the absence of a fetched full text is not\nby itself a deciding point when the record in hand speaks to the claim. A\nthird party's paraphrase still never counts; the source's own record does.";
+const CHECK_PROMPTS = {"1": ["Source existence", "For each citation attached to the claim: does this source exist? Resolve it in catalogues/records (publisher, journal archive, library catalogue, DOI registry). Report PASS if every citation resolves. FAIL only on positive grounds: a registry-class source (a journal article with volume and pages, a DOI- or ISBN-bearing work) that resolves NOWHERE, or a record that resolves and is a different work than the one cited \u2014 in the first case the correction is that the cited source does not exist. A source of a class registries do not hold (print-only catalogues, manuscripts, ephemera) that does not resolve is UNSETTLED, with the artifact itself as the door: registry silence about print artifacts settles nothing."], "2": ["Source fidelity", "Does the cited source say what the claim says it says? Judge against the source's own record in the dossier \u2014 its abstract of record, its catalogue description, the passage of record \u2014 at the place cited. Other people's paraphrases do not count; the source's own record does. QUOTE OR ABSTAIN: open your note by quoting, word for word inside double quotes, the line of the record that decides this claim, then judge from that line. A verdict without the quoted line is void and will be recorded as UNSETTLED. PASS if the quoted line matches the claim, FAIL if it differs, stating what the source actually says. UNSETTLED only when no line in the record speaks to the deciding point, naming that point as the door."], "3": ["Alias sweep", "The claim's subject carries other names (listed with the claim). Search the record under EVERY alias: alternate titles, incipits, catalogue labels, nicknames. A claim of absence ('never published', 'no translation exists', 'first') fails if anything surfaces under any alias. Report what the sweep found under each name. When an ALIAS DOSSIER is attached, it is registry ground truth gathered before this check ran: judge the sweep from it, not from memory. The dossier's search under each alias IS the sweep: if every listed alias was searched, the sweep is complete and you judge PASS or FAIL from what it found. UNSETTLED only for an alias that could not be searched at all, naming it as the door. COMPLETENESS (round 5): when your correction rests on a record the dossier surfaced, name that record IN FULL in the correction \u2014 its author or translator, its title, its year, and its publisher or journal, as the record gives them. A correction that gestures ('a translation exists', 'a later work disagrees') without naming the record it rests on is incomplete and does not carry the claim."], "4": ["Right-level check", "Verify the claim at the level it lives at. A claim about a work is checked against the work's own record \u2014 not only the record of one copy, edition, or witness of it, which may be silent about the work. If you only reached a lower-level record, say so and mark UNSETTLED with the right-level record as the door. COMPLETENESS (round 5): when your correction rests on a record the dossier surfaced, name that record IN FULL in the correction \u2014 its author or translator, its title, its year, and its publisher or journal, as the record gives them. A correction that gestures ('a translation exists', 'a later work disagrees') without naming the record it rests on is incomplete and does not carry the claim."], "5": ["Secondary sweep", "Find later works that cite the claim's source. Later scholarship often names an edition, a correction, or a retraction in a single line. PASS if nothing found contradicts the claim; FAIL if a citing work contradicts it, quoting the line. When a CITED-BY DOSSIER is attached, it lists real later works from the OpenAlex and Semantic Scholar citation graphs: judge from it, and never invent a citing work it does not list. COMPLETENESS (round 5): when your correction rests on a record the dossier surfaced, name that record IN FULL in the correction \u2014 its author or translator, its title, its year, and its publisher or journal, as the record gives them. A correction that gestures ('a translation exists', 'a later work disagrees') without naming the record it rests on is incomplete and does not carry the claim."], "6": ["Own-files sweep", "Search the user's own provided files and prior outputs for anything bearing on this claim. A contradiction inside the user's own record is a finding: report it exactly, naming the file. If no user files were provided, mark UNSETTLED with the door 'the user's own files'."]};
+const ADVERSARIAL_SYSTEM_PROMPT = "You are the adversarial pass of an audit program \u2014 check 9.\nYour mandate is to KILL the claim in front of you.\n\nYou did not write this claim, you owe it nothing, and you have not seen the\nreasoning that produced it. Argue as an opponent who wants the claim dead:\nsearch for the source that contradicts it, the edition it missed, the alias\nit never swept, the count it got wrong. Use fresh sources you find yourself,\nnot the claim's own citations where avoidable.\n\nA kill counts only when you can NAME the record that carries it: cite the\nsettling source by title in your evidence, from the dossier attached below\nor from a source you opened yourself. A contradiction you cannot tie to a\nnamed peer-reviewed source or primary record is not a kill \u2014 it is\nUNSETTLED, and you say which record would settle it.\n\n{standard}\n\nOutcomes:\n- If you land a contradiction from a peer-reviewed source or a primary\n  record: FAIL, and state what the record actually says (that becomes the\n  correction).\n- If the claim survives your attack and is backed by a peer-reviewed or\n  primary source you opened yourself: PASS.\n- If you cannot settle it from reachable sources: UNSETTLED, naming the\n  exact door \u2014 the source that would decide it. Never soften this.\nA claim you cannot kill and cannot confirm is HELD. That is a real result,\nnot a failure of your pass.";
+const EXTRACTION_SYSTEM_PROMPT = "You are the extraction pass of an audit program.\nBreak the document into discrete, individually checkable claims.\nRules:\n- One claim per statement that could be true or false on its own.\n- If a statement leans on a citation ('as X has shown', 'according to Y',\n  'confirmed in Z'), the attribution is part of the claim: keep the cited\n  author and work named in the claim text. A claim stripped of the source\n  it leans on cannot be audited for that source.\n- Attach to each claim EVERY citation that supports it: the citations in\n  the claim's own sentence AND any citation in the sentence immediately\n  following it. Research prose often states a claim and cites in the next\n  sentence; a claim left citation-less cannot be audited against its\n  source, so when a citation stands anywhere in the claim's sentence or\n  the one after it, the claim carries it.\n- Copy citations EXACTLY as written, including any errors. Never repair them.\n- List every other name, title, or label you know the claim's subject carries.\n- For numerical claims, record the stated total and the component items it sums.\n- Fill EVERY field of the schema; use an empty string or empty list when a claim has none.\n- Do not judge the claims. Extraction only.";
+const EXTRACTION_SCHEMA = {"name": "claim_extraction", "schema": {"type": "object", "additionalProperties": false, "properties": {"claims": {"type": "array", "items": {"type": "object", "additionalProperties": false, "properties": {"text": {"type": "string", "description": "One discrete checkable statement, verbatim in substance."}, "claim_type": {"type": "string", "enum": ["factual", "numerical", "identity", "existence", "other"]}, "citations": {"type": "array", "items": {"type": "object", "additionalProperties": false, "properties": {"raw": {"type": "string"}, "source_title": {"type": "string"}, "identifier": {"type": "string"}, "locator": {"type": "string"}}, "required": ["raw", "source_title", "identifier", "locator"]}}, "aliases": {"type": "array", "items": {"type": "string"}, "description": "Other names/titles/labels the claim's subject is known by."}, "numbers": {"type": "array", "items": {"type": "string"}, "description": "Stated totals in the claim, for check 7."}, "components": {"type": "array", "items": {"type": "string"}, "description": "Underlying item values a stated total claims to sum, for check 7."}}, "required": ["text", "claim_type", "citations", "aliases", "numbers", "components"]}}}, "required": ["claims"]}, "strict": true};
+const CHECK_RESULT_SCHEMA = {name:"check_result",schema:{type:"object",additionalProperties:false,properties:{outcome:{type:"string",enum:["pass","fail","unsettled"]},note:{type:"string"},door:{type:"string"},correction:{type:"string"},evidence:{type:"array",items:{type:"object",additionalProperties:false,properties:{source_name:{type:"string"},source_class:{type:"string",enum:["peer_reviewed","primary_record","tertiary"]},detail:{type:"string"},reference:{type:"string"}},required:["source_name","source_class","detail","reference"]}}},required:["outcome","note","door","correction","evidence"]},strict:true};
+
+const API_BASE = "https://api.meta.ai/v1";
+const MODEL_EXTRACTION = "muse-spark-1.3";
+const MODEL_FIDELITY = "muse-wonder-1.0";
+const MODEL_ADVERSARIAL = "muse-wonder-1.0";
+const TOKEN_CEILING = 1500000;
+
+/* ---------------- utilities (src/audit.py helpers) ---------------- */
+function _normalize(text){ return (text||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().replace(/\s+/g," "); }
+const _SENTENCE_SPLIT = /(?<=[.!?])\s+(?=[A-Z“\"“*(])/;
+const _DOI_IN_TEXT = /10\.\d{4,9}\/[^\s\"'<>[\]\)]+/;
+const _QUOTED_TITLE = /["“]([^"”]{8,120})["”]/g;
+const _ITALIC_TITLE = /\*([^*]{4,120})\*/g;
+const _YEAR_IN_TEXT = /\b(1[0-9]{3}|20[0-9]{2})\b/;
+const _CATALOGUE_REF = /((?:\d{4}\s+)?(?:[A-Z][A-Za-z&.'-]+\s+){0,3}catalogue\s+No\.?\s*\d+)/i;
+const _QUOTED_SPAN = /["“][^"”]{8,}["”]|«[^»]{8,}»/;
+const _GATE_STOPWORDS = new Set(["about","above","after","again","being","could","every","first","found","given","other","their","there","these","those","under","using","where","which","while","would","claim","check","source","record","sources","records"]);
+const _MERGE_STOPWORDS = new Set(["the","and","for","with","was","were","are","has","had","his","her","its","that","this","from","into","before","after","under","over","been","being","first","one","two"]);
+function _significantTokens(text){
+  const m = (text||"").toLowerCase().match(/[a-zà-ÿ]{5,}/g) || [];
+  return new Set(m.filter(t => !_GATE_STOPWORDS.has(t)));
+}
+function _mergeTokens(text){
+  return new Set(_normalize(text).split(" ").filter(t => t.length >= 5 && /^[a-z]+$/.test(t) && !_MERGE_STOPWORDS.has(t)));
+}
+function pyRepr(s){ return "'" + String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'") + "'"; }
+function stripFences(raw){
+  let s = String(raw||"").trim();
+  if (s.startsWith("```")) { s = s.replace(/^```[a-z]*\s*/i,"").replace(/```\s*$/,""); }
+  return s;
+}
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+async function sha256Hex(text){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
+/* ---------------- model client (BYOK) ---------------- */
+class MetaClient {
+  constructor(apiKey, state){
+    this.apiKey = apiKey;
+    this._state = state || {tokens:0, calls:0};
+  }
+  fresh(){ return new MetaClient(this.apiKey, this._state); }
+  usageSnapshot(){ return {api_calls:this._state.calls, api_tokens:this._state.tokens}; }
+  async complete(model, system, user, jsonSchema){
+    let lastErr = null;
+    for (const useSchema of (jsonSchema ? [true, false] : [false])){
+      try { return await this._call(model, system, user, useSchema ? jsonSchema : null); }
+      catch(e){
+        lastErr = e;
+        if (useSchema && e && e.status === 400) continue;  // schema rejected: retry bare, parse directly
+        throw e;
+      }
+    }
+    throw lastErr;
+  }
+  async _call(model, system, user, jsonSchema){
+    const payload = {model, messages:[{role:"system",content:system||""},{role:"user",content:user||""}]};
+    if (jsonSchema) payload.response_format = {type:"json_schema", json_schema: jsonSchema};
+    let resp;
+    try {
+      resp = await fetch(API_BASE + "/chat/completions", {
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer " + this.apiKey},
+        body: JSON.stringify(payload)});
+    } catch(e){ throw new Error("network error calling api.meta.ai: " + e.message); }
+    if (!resp.ok){
+      const body = (await resp.text()).slice(0, 500);
+      const err = new Error("HTTP " + resp.status + " from /chat/completions: " + body);
+      err.status = resp.status;
+      throw err;
+    }
+    const data = await resp.json();
+    const usage = data.usage || {};
+    this._state.calls += 1;
+    this._state.tokens += (usage.total_tokens || 0);
+    if (this._state.tokens > TOKEN_CEILING)
+      throw new Error("Token ceiling hit (" + this._state.tokens + " > " + TOKEN_CEILING + "); run stopped under the spend cap.");
+    return data.choices[0].message.content;
+  }
+}
+class DemoClient {
+  constructor(state){ this._state = state || {tokens:0, calls:0}; }
+  fresh(){ return new DemoClient(this._state); }
+  usageSnapshot(){ return {api_calls:this._state.calls, api_tokens:this._state.tokens}; }
+  async complete(model, system, user, jsonSchema){
+    this._state.calls += 1;
+    if (jsonSchema && jsonSchema.name === "claim_extraction") return JSON.stringify({claims: []});
+    return JSON.stringify({outcome:"unsettled", note:"dry run", door:"n/a"});
+  }
+}
+async function _safeComplete(client, model, system, user, jsonSchema){
+  for (let i = 0; i < 2; i++){
+    try { return await client.complete(model, system, user, jsonSchema); }
+    catch(e){ /* one retry, then None — a failed call degrades to Held, never a crash */ }
+  }
+  return null;
+}
+function _unsettled(number, name, why){
+  return {check_number:number, check_name:name, outcome:"unsettled",
+    note:"This check could not complete: " + why + ". The claim is not settled by it.",
+    door:"The model endpoint (call failed twice)", evidence:[], correction:""};
+}
+
+/* ---------------- extraction (src/audit.py + src/extraction.py) ---------------- */
+const _CHUNK_CHARS = 20000;
+function _chunkDocument(document){
+  if (document.length <= _CHUNK_CHARS) return [document];
+  const chunks = []; let current = "";
+  for (const para of document.split("\n\n")){
+    if (current && current.length + para.length + 2 > _CHUNK_CHARS){ chunks.push(current); current = para; }
+    else { current = current ? current + "\n\n" + para : para; }
+  }
+  if (current) chunks.push(current);
+  return chunks;
+}
+function _parseSentenceCitations(sentence){
+  const found = [];
+  const doiM = sentence.match(_DOI_IN_TEXT);
+  const yearM = sentence.match(_YEAR_IN_TEXT);
+  const titles = [];
+  for (const rx of [_QUOTED_TITLE, _ITALIC_TITLE]){
+    rx.lastIndex = 0;
+    let m;
+    while ((m = rx.exec(sentence)) !== null){
+      const t = m[1].trim().replace(/^[,;: ]+|[,;: ]+$/g,"");
+      if (t && !titles.includes(t)) titles.push(t);
+    }
+  }
+  for (const t of titles)
+    found.push({raw:t, source_title:t, identifier: doiM ? doiM[0] : "", locator: yearM ? yearM[0] : ""});
+  if (!titles.length && doiM)
+    found.push({raw:doiM[0], source_title:"", identifier:doiM[0], locator:""});
+  if (!found.length){
+    const catM = sentence.match(_CATALOGUE_REF);
+    if (catM) found.push({raw:catM[1].trim(), source_title:"", identifier:"", locator:""});
+  }
+  return found;
+}
+function _reattachCitations(claims, document){
+  const sentences = [];
+  for (const para of document.split("\n")){
+    const p = para.trim();
+    if (p) for (const s of p.split(_SENTENCE_SPLIT)){ const t = s.trim(); if (t) sentences.push(t); }
+  }
+  let attached = 0;
+  for (const claim of claims){
+    if (claim.citations.length) continue;
+    const claimTokens = _mergeTokens(claim.text);
+    if (claimTokens.size < 3) continue;
+    let bestI = -1, bestScore = 0;
+    sentences.forEach((sent, i) => {
+      const st = _significantTokens(sent);
+      let score = 0; for (const t of claimTokens) if (st.has(t)) score++;
+      if (score > bestScore){ bestI = i; bestScore = score; }
+    });
+    if (bestI < 0 || bestScore < 3) continue;
+    const harvested = [];
+    for (const j of [bestI, bestI + 1]) if (j < sentences.length) harvested.push(..._parseSentenceCitations(sentences[j]));
+    const seen = new Set();
+    for (const cit of harvested){
+      const key = cit.source_title.toLowerCase() + "" + cit.identifier.toLowerCase();
+      if (!seen.has(key)){ seen.add(key); claim.citations.push(cit); }
+    }
+    if (claim.citations.length) attached++;
+  }
+  return attached;
+}
+function _mergeNearDuplicates(claims){
+  const merged = [];
+  for (const claim of claims){
+    const tokens = _mergeTokens(claim.text);
+    let target = null;
+    for (const kept of merged){
+      const keptTokens = _mergeTokens(kept.text);
+      if (!tokens.size || !keptTokens.size) continue;
+      const inter = new Set([...tokens].filter(t => keptTokens.has(t)));
+      const union = new Set([...tokens, ...keptTokens]);
+      const jaccard = inter.size / union.size;
+      if (jaccard < 0.72){
+        const shortPair = Math.max(tokens.size, keptTokens.size) <= 8;
+        const numsA = new Set((kept.numbers||[]).map(String)), numsB = new Set((claim.numbers||[]).map(String));
+        const textNumsA = new Set(kept.text.match(/\d[\d,]*/g) || []), textNumsB = new Set(claim.text.match(/\d[\d,]*/g) || []);
+        const numbersAgree = _setEq(numsA, numsB) && _setEq(textNumsA, textNumsB);
+        const diff = new Set([...tokens, ...keptTokens].filter(t => !(tokens.has(t) && keptTokens.has(t))));
+        const capitalized = new Set([...(kept.text.match(/\b[A-Z][a-z]+\b/g) || []), ...(claim.text.match(/\b[A-Z][a-z]+\b/g) || [])].map(w => w.toLowerCase()));
+        const nameSwap = [...diff].some(t => capitalized.has(t));
+        const augA = new Set([...keptTokens, ..._normalize(kept.text).split(" ").filter(t => /^\d+$/.test(t))]);
+        const augB = new Set([...tokens, ..._normalize(claim.text).split(" ").filter(t => /^\d+$/.test(t))]);
+        const jaccardB = (augA.size && augB.size) ? new Set([...augA].filter(t => augB.has(t))).size / new Set([...augA, ...augB]).size : 0;
+        if (!(shortPair && jaccardB >= 0.6 && numbersAgree && !nameSwap)) continue;
+      }
+      const keptNums = new Set((kept.numbers||[]).map(String)), claimNums = new Set((claim.numbers||[]).map(String));
+      if (keptNums.size && claimNums.size && !_setEq(keptNums, claimNums)) continue;
+      const keptTextNums = new Set(kept.text.match(/\d[\d,]*/g) || []), claimTextNums = new Set(claim.text.match(/\d[\d,]*/g) || []);
+      if (keptTextNums.size && claimTextNums.size && !_setEq(keptTextNums, claimTextNums)) continue;
+      target = kept; break;
+    }
+    if (!target){ merged.push(claim); continue; }
+    if (claim.text.length > target.text.length) target.text = claim.text;
+    const have = new Set(target.citations.map(c => c.source_title.toLowerCase() + "" + c.identifier.toLowerCase() + "" + c.raw.toLowerCase()));
+    for (const cit of claim.citations){
+      const k = cit.source_title.toLowerCase() + "" + cit.identifier.toLowerCase() + "" + cit.raw.toLowerCase();
+      if (!have.has(k)){ target.citations.push(cit); have.add(k); }
+    }
+    for (const a of claim.aliases) if (!target.aliases.includes(a)) target.aliases.push(a);
+    if (!(target.numbers||[]).length && (claim.numbers||[]).length) target.numbers = claim.numbers;
+    if (!(target.components||[]).length && (claim.components||[]).length) target.components = claim.components;
+  }
+  merged.forEach((c, i) => { c.id = i + 1; });
+  return merged;
+}
+function _setEq(a, b){ if (a.size !== b.size) return false; for (const x of a) if (!b.has(x)) return false; return true; }
+
+async function extractClaims(client, document){
+  const rawClaims = [];
+  const chunks = _chunkDocument(document);
+  for (let ci = 0; ci < chunks.length; ci++){
+    const passes = [];
+    for (let p = 0; p < 2; p++){
+      const raw = await _safeComplete(client, MODEL_EXTRACTION, EXTRACTION_SYSTEM_PROMPT, chunks[ci], EXTRACTION_SCHEMA);
+      if (raw !== null) passes.push(raw);
+    }
+    if (!passes.length)
+      throw new Error("Claim extraction failed on chunk " + (ci + 1) + " on both extraction passes; the audit would be incomplete, so it does not proceed.");
+    for (const raw of passes){
+      const parsed = JSON.parse(stripFences(raw));
+      rawClaims.push(...(parsed.claims || []));
+    }
+  }
+  const claims = []; const byKey = new Map();
+  for (const c of rawClaims){
+    const text = (c.text || "").trim();
+    if (!text) continue;
+    const key = _normalize(text);
+    const newCitations = (c.citations || []).filter(x => x && typeof x === "object").map(x => ({raw:x.raw||"", source_title:x.source_title||"", identifier:x.identifier||"", locator:x.locator||""}));
+    const existing = byKey.get(key);
+    if (existing){
+      const have = new Set(existing.citations.map(x => x.source_title.toLowerCase() + "" + x.identifier.toLowerCase() + "" + x.raw.toLowerCase()));
+      for (const cit of newCitations){
+        const k = cit.source_title.toLowerCase() + "" + cit.identifier.toLowerCase() + "" + cit.raw.toLowerCase();
+        if (!have.has(k)){ existing.citations.push(cit); have.add(k); }
+      }
+      for (const a of (c.aliases || [])) if (!existing.aliases.includes(a)) existing.aliases.push(a);
+      if (!(existing.numbers||[]).length && (c.numbers||[]).length) existing.numbers = c.numbers;
+      if (!(existing.components||[]).length && (c.components||[]).length) existing.components = c.components;
+      continue;
+    }
+    const claim = {id: claims.length + 1, text, claim_type: c.claim_type || "general",
+      citations: newCitations, aliases: c.aliases || [], numbers: c.numbers || [], components: c.components || []};
+    byKey.set(key, claim);
+    claims.push(claim);
+  }
+  const merged = _mergeNearDuplicates(claims);
+  _reattachCitations(merged, document);
+  return merged;
+}
+
+/* ---------------- retrieval (src/retrieve.py) ----------------
+   Free, keyless registries. The browser cannot set a User-Agent;
+   the user's optional contact address rides as the mailto parameter
+   where a registry accepts one — the polite-pool identification. */
+let MAILTO = "";
+let _regLast = 0;
+async function _regFetchJson(url, timeoutMs){
+  // OpenAlex and Semantic Scholar spacing: one shared polite gap.
+  const wait = 450 - (Date.now() - _regLast);
+  if (wait > 0) await sleep(wait);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs || 30000);
+  try {
+    const resp = await fetch(url, {signal: ctrl.signal, headers: {"Accept": "application/json"}});
+    _regLast = Date.now();
+    if (!resp.ok){ const e = new Error("HTTP " + resp.status); e.status = resp.status; throw e; }
+    return await resp.json();
+  } finally { clearTimeout(timer); }
+}
+function _cleanAbstract(raw){
+  return (raw || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+async function _dataciteLookup(cleaned){
+  try {
+    const data = await _regFetchJson("https://api.datacite.org/dois/" + encodeURIComponent(cleaned));
+    const attrs = data.data.attributes;
+    return {doi: attrs.doi || cleaned,
+      title: ((attrs.titles || [{}])[0] || {}).title || "",
+      authors: (attrs.creators || []).map(c => c.name || ""),
+      container: attrs.publisher || "",
+      year: attrs.publicationYear,
+      type: (attrs.types || {}).resourceTypeGeneral || ""};
+  } catch(e){ return null; }
+}
+async function doiLookup(doi){
+  const cleaned = doi.trim().replace(/^https:\/\/doi\.org\//, "").replace(/^doi:/, "");
+  try {
+    const data = await _regFetchJson("https://api.crossref.org/works/" + encodeURIComponent(cleaned));
+    const msg = data.message;
+    return {doi: msg.DOI || cleaned,
+      title: (msg.title || [""])[0],
+      authors: (msg.author || []).map(a => [a.given || "", a.family || ""].filter(Boolean).join(" ")),
+      container: (msg["container-title"] || [""])[0],
+      year: ((msg.issued || {})["date-parts"] || [[null]])[0][0],
+      type: msg.type || "",
+      abstract: _cleanAbstract(msg.abstract || "")};
+  } catch(e){ return _dataciteLookup(cleaned); }
+}
+async function titleSearch(title, rows){
+  rows = rows || 3;
+  const q = new URLSearchParams({"query.title": title, "rows": rows});
+  if (MAILTO) q.set("mailto", MAILTO);
+  try {
+    const data = await _regFetchJson("https://api.crossref.org/works?" + q.toString());
+    return (data.message.items || []).map(it => ({
+      doi: it.DOI || "",
+      title: (it.title || [""])[0],
+      authors: (it.author || []).map(a => [a.given || "", a.family || ""].filter(Boolean).join(" ")),
+      container: (it["container-title"] || [""])[0],
+      year: ((it.issued || {})["date-parts"] || [[null]])[0][0],
+      score: it.score || 0,
+      abstract: _cleanAbstract(it.abstract || "")}));
+  } catch(e){ return []; }
+}
+function titleSimilarity(a, b){
+  const toks = s => new Set((s.toLowerCase().match(/[a-z0-9]+/g) || []).filter(t => !["the","a","an","of"].includes(t)));
+  const core = s => s.split(/[:—–]| - /)[0];
+  const norm = s => (s.toLowerCase().match(/[a-z0-9]+/g) || []).join(" ");
+  const jac = (x, y) => { if (!x.size || !y.size) return 0; let i = 0; for (const t of x) if (y.has(t)) i++; return i / new Set([...x, ...y]).size; };
+  const na = norm(core(a)), nb = norm(b);
+  if (na && nb && (nb.startsWith(na) || na.startsWith(norm(core(b))))) return 1.0;
+  return jac(toks(core(a)), toks(core(b)));
+}
+async function openlibraryTitleSearch(title, rows){
+  rows = rows || 3;
+  const q = new URLSearchParams({title, limit: rows, fields: "title,author_name,first_publish_year,key"});
+  try {
+    const data = await _regFetchJson("https://openlibrary.org/search.json?" + q.toString());
+    return (data.docs || []).map(d => ({
+      doi: "", title: d.title || "", authors: d.author_name || [],
+      container: "Open Library", year: d.first_publish_year,
+      score: titleSimilarity(title, d.title || "") * 100}));
+  } catch(e){ return []; }
+}
+async function gatedTitleRecords(title, rows){
+  rows = rows || 3;
+  let hits = (await titleSearch(title, rows)).filter(h => titleSimilarity(title, h.title) >= 0.5);
+  if (!hits.length)
+    hits = (await openlibraryTitleSearch(title, rows)).filter(h => titleSimilarity(title, h.title) >= 0.5);
+  return hits;
+}
+async function catalogueDescription(title, authors){
+  const q = new URLSearchParams({title, limit: 5, fields: "title,author_name,first_publish_year,key"});
+  let docs;
+  try { docs = (await _regFetchJson("https://openlibrary.org/search.json?" + q.toString())).docs || []; }
+  catch(e){ return ""; }
+  const gated = docs.filter(d => d.key && titleSimilarity(title, d.title || "") >= 0.5);
+  if (!gated.length) return "";
+  let pick = gated[0];
+  if (authors && authors.length){
+    const surnames = new Set(authors.map(a => (a.split(" ").pop() || "").toLowerCase()).filter(Boolean));
+    for (const d of gated){
+      const names = new Set((d.author_name || []).map(n => (n.split(" ").pop() || "").toLowerCase()));
+      if ([...surnames].some(s => names.has(s))){ pick = d; break; }
+    }
+  }
+  try {
+    const work = await _regFetchJson("https://openlibrary.org" + pick.key + ".json");
+    let desc = work.description;
+    if (desc && typeof desc === "object") desc = desc.value;
+    if (typeof desc !== "string") return "";
+    return desc.split(/\s+/).join(" ").slice(0, 600);
+  } catch(e){ return ""; }
+}
+function _parseOpenAlexWork(payload){
+  if (!payload || typeof payload !== "object" || !payload.id) return null;
+  return {openalex_id: payload.id.split("/").pop(),
+    title: payload.display_name || "",
+    doi: (payload.doi || "").replace(/^https:\/\/doi\.org\//, ""),
+    cited_by_count: payload.cited_by_count || 0,
+    year: payload.publication_year};
+}
+function _openAlexBrief(payload){
+  const source = ((payload.primary_location || {}).source) || {};
+  return {title: payload.display_name || "", year: payload.publication_year,
+    doi: (payload.doi || "").replace(/^https:\/\/doi\.org\//, ""),
+    authors: (payload.authorships || []).slice(0, 3).map(a => (a.author || {}).display_name || ""),
+    container: source.display_name || "", cited_by_count: payload.cited_by_count || 0};
+}
+async function openalexCitedBy(doi, limit){
+  limit = limit || 5;
+  const cleaned = doi.trim().replace(/^https:\/\/doi\.org\//, "").replace(/^doi:/, "");
+  if (!cleaned) return null;
+  let payload;
+  try {
+    const url = "https://api.openalex.org/works/doi:" + encodeURIComponent(cleaned) + (MAILTO ? "?mailto=" + encodeURIComponent(MAILTO) : "");
+    payload = await _regFetchJson(url);
+  } catch(e){
+    if (e.status === 404) return null;
+    return {unavailable: "OpenAlex work lookup failed (HTTP " + (e.status || "network") + ")"};
+  }
+  const work = _parseOpenAlexWork(payload);
+  if (!work) return null;
+  try {
+    const q = new URLSearchParams({filter: "cites:" + work.openalex_id, sort: "cited_by_count:desc", "per-page": limit});
+    if (MAILTO) q.set("mailto", MAILTO);
+    const data = await _regFetchJson("https://api.openalex.org/works?" + q.toString());
+    const citing = (data.results || []).filter(w => w && typeof w === "object").map(_openAlexBrief);
+    return {work, citing};
+  } catch(e){
+    return {work, citing: [], citing_unavailable: "the citing-works list could not be fetched (" + (e.name || "Error") + ")"};
+  }
+}
+async function semanticscholarCitations(doi, limit){
+  limit = limit || 5;
+  const cleaned = doi.trim().replace(/^https:\/\/doi\.org\//, "").replace(/^doi:/, "");
+  if (!cleaned) return null;
+  const q = new URLSearchParams({fields: "title,year,venue,externalIds,authors", limit});
+  const url = "https://api.semanticscholar.org/graph/v1/paper/DOI:" + encodeURIComponent(cleaned) + "/citations?" + q.toString();
+  for (let attempt = 0; attempt < 3; attempt++){
+    try {
+      const payload = await _regFetchJson(url);
+      return (payload.data || []).map(entry => {
+        const paper = (entry || {}).citingPaper || {};
+        const ext = paper.externalIds || {};
+        return {title: paper.title || "", year: paper.year, doi: ext.DOI || "",
+          authors: (paper.authors || []).slice(0, 3).map(a => a.name || ""), container: paper.venue || ""};
+      });
+    } catch(e){
+      if (e.status === 404) return null;
+    }
+    if (attempt < 2) await sleep(3000 * (attempt + 1));
+  }
+  return null;
+}
+
+/* ---------------- the dossier (src/audit.py _gather) ---------------- */
+async function _gather(claim){
+  const records = []; const lines = [];
+  const enrichCache = new Map();
+  async function _enrich(rec){
+    if (rec.abstract) return;
+    const key = (rec.title || "").trim().toLowerCase();
+    if (!key) return;
+    if (!enrichCache.has(key)){
+      let text = "";
+      try { text = await catalogueDescription(rec.title, rec.authors || []); } catch(e){ text = ""; }
+      enrichCache.set(key, text);
+    }
+    const text = enrichCache.get(key);
+    if (text){
+      rec.catalogue_note = text;
+      lines.push("Catalogue description (Open Library) for \"" + rec.title + "\": " + text);
+    }
+  }
+  for (const cit of claim.citations){
+    const ident = (cit.identifier || "").trim();
+    if (/^(10\.|doi:|https:\/\/doi\.org)/i.test(ident)){
+      const rec = await doiLookup(ident);
+      if (rec){
+        records.push(rec);
+        lines.push("DOI " + rec.doi + " RESOLVES: \"" + rec.title + "\" — " + rec.container + ", " + rec.year + ", authors: " + (rec.authors || []).join(", "));
+        if (rec.abstract) lines.push("Abstract of record: " + rec.abstract.slice(0, 600));
+        await _enrich(rec);
+      } else {
+        lines.push("DOI " + ident + " DOES NOT RESOLVE in Crossref or DataCite.");
+      }
+    }
+    if (cit.source_title){
+      const hits = await gatedTitleRecords(cit.source_title, 3);
+      for (const h of hits){
+        records.push(h);
+        lines.push("Title match: \"" + h.title + "\" — " + h.container + ", " + h.year + " (DOI " + (h.doi || "none") + ", match score " + (Math.round(h.score)) + ")");
+        if (h.abstract) lines.push("Abstract of record: " + h.abstract.slice(0, 600));
+        await _enrich(h);
+      }
+      if (!hits.length)
+        lines.push("Title search found NO registry record for \"" + cit.source_title + "\".");
+    }
+  }
+  if (claim.aliases && claim.aliases.length){
+    lines.push("");
+    lines.push("ALIAS DOSSIER — registry search under the subject's other names (ground truth for the alias sweep):");
+    for (const alias of claim.aliases){
+      const hits = await gatedTitleRecords(alias, 3);
+      for (const h of hits){
+        records.push(h);
+        lines.push("Under \"" + alias + "\": \"" + h.title + "\" — " + h.container + ", " + h.year + " (DOI " + (h.doi || "none") + ")");
+        if (h.abstract) lines.push("Abstract of record: " + h.abstract.slice(0, 600));
+        await _enrich(h);
+      }
+      if (!hits.length)
+        lines.push("Under \"" + alias + "\": NO registry record found.");
+    }
+  }
+  const dois = [];
+  for (const rec of records){
+    const d = (rec.doi || "").trim();
+    if (d && !dois.includes(d)) dois.push(d);
+  }
+  if (dois.length){
+    lines.push("");
+    lines.push("CITED-BY DOSSIER — later works citing the source, from the OpenAlex and Semantic Scholar citation graphs (ground truth for the secondary sweep):");
+    for (const d of dois.slice(0, 2)){
+      const res = await openalexCitedBy(d, 5);
+      let listInHand = false;
+      if (res === null){
+        lines.push("DOI " + d + ": OpenAlex holds no record for this DOI.");
+      } else if (res.unavailable){
+        lines.push("DOI " + d + ": " + res.unavailable + " — that door could not be reached this run; nothing is settled by its silence.");
+      } else {
+        const w = res.work;
+        lines.push("DOI " + d + " (\"" + w.title + "\") is cited by " + w.cited_by_count + " work(s) in OpenAlex. Most-cited of the later works:");
+        for (const c of res.citing)
+          lines.push("- \"" + c.title + "\" — " + c.container + ", " + c.year + " (DOI " + (c.doi || "none") + ")");
+        if (res.citing_unavailable){
+          lines.push("- (" + res.citing_unavailable + " this run; the count above is the record's own figure.)");
+        } else if (!res.citing.length){
+          lines.push("- (OpenAlex lists no citing works.)");
+          listInHand = true;
+        } else { listInHand = true; }
+      }
+      if (!listInHand){
+        const s2 = await semanticscholarCitations(d, 5);
+        if (s2 && s2.length){
+          lines.push("Later works citing DOI " + d + ", per Semantic Scholar:");
+          for (const c of s2)
+            lines.push("- \"" + c.title + "\" — " + c.container + ", " + c.year + " (DOI " + (c.doi || "none") + ")");
+        } else if (s2 && !s2.length){
+          lines.push("Semantic Scholar lists no citing works for DOI " + d + ".");
+        } else {
+          lines.push("Semantic Scholar's record for DOI " + d + " could not be reached this run either.");
+        }
+      }
+    }
+  }
+  return [records, lines.join("\n")];
+}
+
+/* ---------------- deterministic checks (src/checks_deterministic.py) ---------------- */
+const _ONES = {zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16, seventeen:17,eighteen:18,nineteen:19};
+const _TENS = {twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
+// Decimal as {c: BigInt coefficient, s: scale} — exact arithmetic, like Python's Decimal.
+function decParse(str){
+  const m = /^([+-]?)(\d+)(?:\.(\d+))?$/.exec(str);
+  if (!m) return null;
+  const frac = m[3] || "";
+  let coef = BigInt(m[2] + frac);
+  if (m[1] === "-") coef = -coef;
+  return {c: coef, s: frac.length};
+}
+function decAlign(a, b){
+  const s = Math.max(a.s, b.s);
+  return [a.c * 10n ** BigInt(s - a.s), b.c * 10n ** BigInt(s - b.s), s];
+}
+function decAdd(a, b){ const [x, y, s] = decAlign(a, b); return {c: x + y, s}; }
+function decEq(a, b){ const [x, y] = decAlign(a, b); return x === y; }
+function decToString(d){
+  const neg = d.c < 0n;
+  let digits = (neg ? -d.c : d.c).toString();
+  if (d.s === 0) return (neg ? "-" : "") + digits;
+  digits = digits.padStart(d.s + 1, "0");
+  return (neg ? "-" : "") + digits.slice(0, digits.length - d.s) + "." + digits.slice(digits.length - d.s);
+}
+function _wordsToNumber(text){
+  const cleaned = text.replace(/,/g, "").trim().toLowerCase();
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  const first = parts.length ? parts[0] : "";
+  if (/^\d+$/.test(first.replace(".", "")) && (first.match(/\./g) || []).length <= 1 && /^\d+(\.\d+)?$/.test(first))
+    return decParse(first);
+  let total = 0, current = 0, seen = false;
+  for (const tok of cleaned.replace(/-/g, " ").split(/\s+/).filter(Boolean)){
+    if (tok in _ONES){ current += _ONES[tok]; seen = true; }
+    else if (tok in _TENS){ current += _TENS[tok]; seen = true; }
+    else if (tok === "hundred"){ current = (current || 1) * 100; seen = true; }
+    else if (tok === "thousand"){ total += (current || 1) * 1000; current = 0; seen = true; }
+    else if (tok === "dozen"){ current = (current || 1) * 12; seen = true; }
+    else if (tok === "and"){ continue; }
+    else break;
+  }
+  if (!seen) throw new Error("no number at the start of " + JSON.stringify(text));
+  return {c: BigInt(total + current), s: 0};
+}
+function _toDecimal(value){
+  const s = String(value).replace(/,/g, "").trim().replace(/%+$/, "").trim();
+  const d = decParse(s);
+  if (d) return d;
+  return _wordsToNumber(s);
+}
+function recomputeThreeTimes(components){
+  const runs = [];
+  for (let i = 0; i < 3; i++){
+    let total = {c: 0n, s: 0};
+    for (const c of components) total = decAdd(total, _toDecimal(c));
+    runs.push(total);
+  }
+  return [runs[0], decEq(runs[0], runs[1]) && decEq(runs[1], runs[2])];
+}
+function checkNumbers(claimId, statedTotal, components){
+  let stated;
+  try { stated = _toDecimal(statedTotal); }
+  catch(e){
+    return {check_number:7, check_name:"Numbers recomputed", outcome:"unsettled",
+      note:"Stated total " + pyRepr(statedTotal) + " is not a readable number.",
+      door:"The underlying item list, in a readable source", evidence:[], correction:""};
+  }
+  const [value, agreed] = recomputeThreeTimes(components);
+  if (!agreed)
+    return {check_number:7, check_name:"Numbers recomputed", outcome:"unsettled",
+      note:"Three recomputations of the same items did not agree; the discrepancy is reported, not averaged away.",
+      door:"A clean item list from the source of record", evidence:[], correction:""};
+  const receipt = {source_name:"The audited document's own stated components", source_class:"primary_record",
+    detail:"Components as written: " + components.map(String).join(", ") + " — they rebuild to " + decToString(value) + " (three recomputations, in agreement).", reference:""};
+  if (decEq(value, stated))
+    return {check_number:7, check_name:"Numbers recomputed", outcome:"pass",
+      note:"Total rebuilt from " + components.length + " items three times: " + decToString(value) + " — matches the stated total.",
+      door:"", evidence:[receipt], correction:""};
+  return {check_number:7, check_name:"Numbers recomputed", outcome:"fail",
+    note:"Stated total is " + decToString(stated) + ", but the " + components.length + " underlying items rebuild to " + decToString(value) + " (three runs, in agreement).",
+    door:"", evidence:[receipt], correction:""};
+}
+function _firstDivergence(a, b){
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) if (a[i] !== b[i]) return i;
+  if (a.length !== b.length) return n;
+  return null;
+}
+function letterCheck(asWritten, asInSource, what){
+  what = what || "identifier";
+  if (asWritten === asInSource)
+    return {check_number:8, check_name:"Names and IDs letter-checked", outcome:"pass",
+      note:what + " matches its source exactly, character by character: " + asInSource, door:"", evidence:[], correction:""};
+  const pos = _firstDivergence(asWritten, asInSource);
+  const writtenChar = (pos !== null && pos < asWritten.length) ? asWritten[pos] : "(end of string)";
+  const sourceChar = (pos !== null && pos < asInSource.length) ? asInSource[pos] : "(end of string)";
+  return {check_number:8, check_name:"Names and IDs letter-checked", outcome:"fail",
+    note:what + " as written (" + pyRepr(asWritten) + ") diverges from its source (" + pyRepr(asInSource) + ") at character " + (pos !== null ? pos + 1 : "?") + ": written has " + pyRepr(writtenChar) + ", the source has " + pyRepr(sourceChar) + ".",
+    door:"", evidence:[], correction:""};
+}
+function _levenshtein(a, b){
+  if (a === b) return 0;
+  let prev = Array.from({length: b.length + 1}, (_, j) => j);
+  for (let i = 1; i <= a.length; i++){
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++)
+      cur.push(Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] !== b[j - 1] ? 1 : 0)));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+function _surname(author){
+  author = (author || "").trim();
+  if (author.includes(",")){
+    const head = author.split(",", 1)[0].trim();
+    if (head.includes("-")) return head;
+    const parts = head.split(/\s+/).filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : "";
+  }
+  const parts = author.split(/\s+/).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : "";
+}
+function registryNameCheck(claim, records){
+  const surnames = []; const surnameSource = {};
+  for (const rec of records){
+    for (const author of (rec.authors || [])){
+      const sur = _surname(author);
+      if (sur && !surnames.includes(sur)){ surnames.push(sur); surnameSource[sur] = [author, rec]; }
+    }
+  }
+  if (!surnames.length) return null;
+  function withReceipt(result, sur){
+    const [author, rec] = surnameSource[sur];
+    result.evidence = [{source_name:"Registry record: \"" + (rec.title || "") + "\"", source_class:"primary_record",
+      detail:"The record's author of record is " + author + " — the name is spelled '" + sur + "'.", reference: rec.doi || ""}];
+    return result;
+  }
+  const tokenRe = /[A-Z][a-zà-ÿ]+(?:-[A-Z][a-zà-ÿ]+)*/g;
+  function candidates(text, titles){
+    const out = [];
+    for (const tok of (text || "").match(tokenRe) || [])
+      if (tok.length >= 3 && !titles.includes(tok) && !out.includes(tok)) out.push(tok);
+    return out;
+  }
+  let titles = "";
+  for (const cit of claim.citations) titles += " " + (cit.source_title || "");
+  let matched = false;
+  for (const cand of candidates(claim.text || "", titles)){
+    for (const sur of surnames){
+      if (cand === sur) matched = true;
+      else if (_levenshtein(cand.toLowerCase(), sur.toLowerCase()) === 1){
+        const result = letterCheck(cand, sur, "Name '" + cand + "'");
+        result.note += " Registry record for the cited source spells it '" + sur + "'.";
+        return withReceipt(result, sur);
+      }
+    }
+  }
+  if (matched)
+    return {check_number:8, check_name:"Names and IDs letter-checked", outcome:"pass",
+      note:"Cited author names match the registry records exactly.", door:"", evidence:[], correction:""};
+  return null;
+}
+const _DOI_SHAPE = /^10\.\d{4,9}\/\S+$/;
+function doiShapeCheck(doi){
+  const raw = doi.trim();
+  if (!(raw.startsWith("10.") || raw.toLowerCase().startsWith("doi:") || raw.toLowerCase().includes("doi.org/"))) return null;
+  const cleaned = raw.replace(/^https:\/\/doi\.org\//, "").replace(/^doi:/, "");
+  if (_DOI_SHAPE.test(cleaned))
+    return {check_number:8, check_name:"Names and IDs letter-checked", outcome:"pass",
+      note:"DOI " + cleaned + " has valid DOI form (existence is check 1).", door:"", evidence:[], correction:""};
+  return {check_number:8, check_name:"Names and IDs letter-checked", outcome:"fail",
+    note:pyRepr(doi) + " does not have the form of a DOI.", door:"", evidence:[], correction:""};
+}
+
+/* ---------------- gates (src/audit.py) ---------------- */
+const _BOILERPLATE_MARKERS = ["illegal activity","wrongdoing","cause serious harm","refusal language","as an ai","i cannot","i can't help","content policy","safety guidelines","detailed instructions or guidance"];
+const _NEGATION_MARKERS = ["not ","n't","never","strike","wrong","incorrect","in fact","actually","rather than","instead","does not","did not","cannot","no longer","false","nonexistent","no such"];
+const _SILENCE_CONCESSIONS = ["silent on the claim","silent on this claim","does not speak to the claim","no line in the record speaks to","record is silent on the claim"];
+const _CITATION_SURNAME_STOPWORDS = new Set(["journal","press","review","studies","history","books","book","early","modern","volume","quarterly","annual","proceedings","transactions","bulletin","magazine","catalogue","library"]);
+
+function _acceptCorrection(claim, result, correction){
+  if (!correction) return "";
+  if ([3, 4, 5].includes(result.check_number)
+      && !_YEAR_IN_TEXT.test(correction)
+      && result.evidence.some(e => _YEAR_IN_TEXT.test(e.detail || "")))
+    return "";
+  const low = correction.toLowerCase();
+  if (_BOILERPLATE_MARKERS.some(m => low.includes(m))) return "";
+  const claimTokens = _significantTokens(claim.text);
+  const corrTokens = _significantTokens(correction);
+  if (claimTokens.size){
+    let missing = 0; for (const t of claimTokens) if (!corrTokens.has(t)) missing++;
+    if (missing <= 1 && !_NEGATION_MARKERS.some(m => low.includes(m))) return "";
+  }
+  for (const t of corrTokens) if (claimTokens.has(t)) return correction;
+  return "";
+}
+function _adversarialNoteFloor(result, claim){
+  if (result.outcome !== "fail") return result;
+  if (claim){
+    const claimTokens = _mergeTokens(claim.text);
+    const blob = _normalize((result.note || "") + " " + result.evidence.map(e => e.detail).join(" "));
+    const blobTokens = new Set(blob.split(" ").filter(Boolean));
+    let shares = false; for (const t of claimTokens) if (blobTokens.has(t)) shares = true;
+    if (claimTokens.size && !shares && !_QUOTED_SPAN.test(result.note || ""))
+      return {check_number:9, check_name:"Adversarial pass", outcome:"unsettled",
+        note:"The adversarial pass returned FAIL with a note that shares no subject matter with the claim and quotes no record; a kill must be about the claim it condemns.",
+        door:"An adversarial reading of this claim itself", evidence:[], correction:result.correction};
+  }
+  const note = (result.note || "").trim();
+  if (note.length >= 40 || _YEAR_IN_TEXT.test(note) || _QUOTED_SPAN.test(note)){
+    const low = note.toLowerCase();
+    if (_SILENCE_CONCESSIONS.some(m => low.includes(m)) && !_YEAR_IN_TEXT.test(note) && !_QUOTED_SPAN.test(note))
+      return {check_number:9, check_name:"Adversarial pass", outcome:"unsettled",
+        note:"The adversarial pass returned FAIL while conceding its record does not speak to the claim, and named no contradicting record in its place; a concession is not a kill.",
+        door:"The contradicting record, named or quoted", evidence:[], correction:result.correction};
+    return result;
+  }
+  return {check_number:9, check_name:"Adversarial pass", outcome:"unsettled",
+    note:"The adversarial pass returned FAIL with a degenerate note (" + note.length + " characters, no year named, no line of the record quoted); a kill that does not show its work in its reasoning does not land.",
+    door:"The adversarial pass's reasoning, stated in full", evidence:[], correction:result.correction};
+}
+function _citationKeys(cit){
+  const titleTokens = _significantTokens(cit.source_title || "");
+  const surnames = new Set();
+  for (const tok of (cit.raw || "").match(/[A-Z][a-zà-ÿ]{3,}/g) || []){
+    const low = tok.toLowerCase();
+    if (!_CITATION_SURNAME_STOPWORDS.has(low) && !titleTokens.has(low)) surnames.add(low);
+  }
+  return [surnames, titleTokens];
+}
+function _claimLeansOn(claim, cit){
+  const [surnames, titleTokens] = _citationKeys(cit);
+  const claimTokens = new Set(_normalize(claim.text).split(" ").filter(Boolean));
+  for (const s of surnames) if (claimTokens.has(s)) return true;
+  const sig = _significantTokens(claim.text);
+  let n = 0; for (const t of titleTokens) if (sig.has(t)) n++;
+  return n >= 2;
+}
+function _existenceBinding(claim, result){
+  if (result.check_number !== 1 || result.outcome !== "fail") return result;
+  if (!claim.citations.length) return result;
+  const blob = _normalize((result.note || "") + " " + result.evidence.map(e => e.detail + " " + e.source_name).join(" "));
+  const blobTokens = new Set(blob.split(" ").filter(Boolean));
+  const condemned = [];
+  for (const cit of claim.citations){
+    const [surnames, titleTokens] = _citationKeys(cit);
+    let hit = false; for (const s of surnames) if (blobTokens.has(s)) hit = true;
+    const sig = _significantTokens(blob);
+    let n = 0; for (const t of titleTokens) if (sig.has(t)) n++;
+    if (hit || n >= 2) condemned.push(cit);
+  }
+  if (!condemned.length || condemned.some(c => _claimLeansOn(claim, c))) return result;
+  const dead = condemned[0];
+  return {check_number:1, check_name:result.check_name, outcome:"unsettled",
+    note:"Check 1 established that the attached citation \"" + (dead.raw || dead.source_title).slice(0, 80) + "\" does not resolve. The claim's text does not lean on that citation — it names neither its author nor its work — so the claim is not failed for it. The dead citation stands recorded; it settles nothing about this claim.",
+    door:"A source this claim actually leans on, examined directly", evidence:[], correction:""};
+}
+
+/* ---------------- model checks + orchestration (src/audit.py) ---------------- */
+function _parseCheck(number, name, raw){
+  const d = JSON.parse(stripFences(raw));
+  const result = {check_number:number, check_name:name, outcome:d.outcome,
+    note:d.note || "", door:d.door || "", correction:d.correction || "",
+    evidence:(d.evidence || []).map(e => ({source_name:e.source_name, source_class:e.source_class, detail:e.detail, reference:e.reference || ""}))};
+  return [result, d.correction || ""];
+}
+const FIDELITY_RETRY_INSTRUCTION = "\n\nRETRY — READ CAREFULLY: a previous attempt at this check returned a verdict whose note quoted no line of the record, and under the quote-or-abstain rule that verdict was void. In your note, quote the deciding line of the record VERBATIM (the exact words, in quotation marks) before you state your verdict — or return \"unsettled\" if no line of the record in hand decides this claim.";
+
+async function runModelCheck(client, number, claim, userFiles, dossier, extraInstruction){
+  const [name, mandate] = CHECK_PROMPTS[number];
+  extraInstruction = extraInstruction || "";
+  let user = "CLAIM: " + claim.text + "\nALIASES: " + ((claim.aliases || []).join(", ") || "(none listed)") + "\n";
+  user += "CITATIONS:\n" + (claim.citations.map(c => "- " + c.raw).join("\n") || "(none)");
+  if (dossier && [1, 2, 3, 5].includes(number))
+    user += "\n\nSOURCE DOSSIER (registry retrieval — ground truth, gathered before this check ran):\n" + dossier;
+  if (number === 6)
+    user += "\n\nUSER FILES:\n" + (userFiles || "(none provided)");
+  const model = number === 2 ? MODEL_FIDELITY : MODEL_EXTRACTION;
+  const raw = await _safeComplete(client, model,
+    mandate + "\n\n" + SOURCE_STANDARD + "\n\nFill EVERY field of the schema; use an empty string when a field does not apply." + extraInstruction,
+    user, CHECK_RESULT_SCHEMA);
+  if (raw === null) return [_unsettled(number, name, "the model call failed (timeout or API error)"), ""];
+  try { return _parseCheck(number, name, raw); }
+  catch(e){ return [_unsettled(number, name, "the model call failed (timeout or API error)"), ""]; }
+}
+async function runAdversarial(client, claim, dossier){
+  const fresh = client.fresh();
+  const system = ADVERSARIAL_SYSTEM_PROMPT.split("{standard}").join(SOURCE_STANDARD);
+  let user = "CLAIM: " + claim.text + "\nALIASES: " + ((claim.aliases || []).join(", ") || "(none listed)");
+  if (dossier) user += "\n\nSOURCE DOSSIER (registry retrieval — gathered before this pass):\n" + dossier;
+  const raw = await _safeComplete(fresh, MODEL_ADVERSARIAL, system, user, CHECK_RESULT_SCHEMA);
+  if (raw === null) return [_unsettled(9, "Adversarial pass", "the model call failed (timeout or API error)"), ""];
+  try { return _parseCheck(9, "Adversarial pass", raw); }
+  catch(e){ return [_unsettled(9, "Adversarial pass", "the model call failed (timeout or API error)"), ""]; }
+}
+const STRONG = new Set(["peer_reviewed", "primary_record"]);
+function receiptsOf(cv){ const out = []; for (const c of cv.checks) out.push(...(c.evidence || [])); return out; }
+
+function resolveVerdict(claim, checks, corrections){
+  corrections = corrections || {};
+  const v = {claim, verdict:"Held — unverified", checks: checks.slice(), correction:"", held_reason:""};
+  const fails = checks.filter(c => c.outcome === "fail");
+  const unsettled = checks.filter(c => c.outcome === "unsettled");
+  if (fails.length){
+    const withCorr = fails.filter(c => c.check_number in corrections);
+    const computed = withCorr.filter(c => [7, 8].includes(c.check_number));
+    const supplying = computed.length ? computed : withCorr;
+    const corrTexts = supplying.map(c => corrections[c.check_number]);
+    if (corrTexts.length){
+      const backed = supplying.some(c => (c.evidence || []).some(e => STRONG.has(e.source_class)));
+      if (backed){ v.verdict = "Corrected"; v.correction = corrTexts.join(" "); return v; }
+      v.verdict = "Held — unverified";
+      v.held_reason = "A check contradicted this claim and a correction was asserted, but no peer-reviewed or primary receipt backs that correction. Corrections are claims too, and an unbacked correction is not printed. Door: the correcting record itself, opened.";
+      return v;
+    }
+    v.held_reason = "A check contradicted this claim, but the correcting record was not reachable in this run, so no correction is asserted.";
+    const doors = [...fails.map(c => c.door), ...unsettled.map(c => c.door)].filter(Boolean);
+    if (doors.length) v.held_reason += " Door: " + doors[0] + ".";
+    return v;
+  }
+  if (unsettled.length){
+    v.verdict = "Held — unverified";
+    const reasons = unsettled.map(c => c.note).filter(Boolean);
+    const doors = unsettled.map(c => c.door).filter(Boolean);
+    v.held_reason = reasons.join(" ");
+    if (doors.length) v.held_reason += " Door: " + doors[0] + ".";
+    return v;
+  }
+  if (checks.length && checks.every(c => c.outcome === "pass")){
+    if (receiptsOf(v).some(e => STRONG.has(e.source_class))){ v.verdict = "Verified"; return v; }
+    v.verdict = "Held — unverified";
+    if (!receiptsOf(v).length)
+      v.held_reason = "Checks passed, but no check produced a receipt from any source in this run. Under the source standard a claim is Verified on receipts, not on the absence of contradiction.";
+    else
+      v.held_reason = "Checks passed, but the only receipts are tertiary sources, which never settle a claim under the source standard.";
+    return v;
+  }
+  v.held_reason = "No check settled this claim in this run.";
+  return v;
+}
+
+async function auditClaim(client, claim, userFiles){
+  const checks = []; const corrections = {};
+  const [records, dossier] = await _gather(claim);
+  for (const number of [1, 2, 3, 4, 5, 6]){
+    if (number === 6 && !(userFiles || "").trim()) continue;
+    let [result, correction] = await runModelCheck(client, number, claim, userFiles, dossier);
+    if (number === 2 && ["pass", "fail"].includes(result.outcome) && !_QUOTED_SPAN.test(result.note || "")){
+      const [retry, retryCorrection] = await runModelCheck(client, number, claim, userFiles, dossier, FIDELITY_RETRY_INSTRUCTION);
+      if (["pass", "fail"].includes(retry.outcome) && _QUOTED_SPAN.test(retry.note || "")){ result = retry; correction = retryCorrection; }
+    }
+    if (number === 1){
+      result = _existenceBinding(claim, result);
+      if (result.outcome !== "fail") correction = "";
+    }
+    if (number === 2 && ["pass", "fail"].includes(result.outcome) && !_QUOTED_SPAN.test(result.note || "")){
+      result = {check_number:2, check_name:CHECK_PROMPTS[2][0], outcome:"unsettled",
+        note:"Fidelity returned a verdict without quoting the line of the record that decides the claim; under the quote-or-abstain rule the verdict is void.",
+        door:"The cited source's own record, quoted line in hand", evidence:[], correction:result.correction};
+      correction = "";
+    }
+    checks.push(result);
+    correction = _acceptCorrection(claim, result, correction);
+    if (correction) corrections[number] = correction;
+  }
+  const numbers = claim.numbers || [], components = claim.components || [];
+  if (numbers.length && components.length){
+    const det = checkNumbers(claim.id, numbers[0], components);
+    checks.push(det);
+    if (det.outcome === "fail") corrections[7] = det.note;
+  }
+  for (const cit of claim.citations){
+    if (cit.identifier){
+      const shape = doiShapeCheck(cit.identifier);
+      if (shape !== null) checks.push(shape);
+    }
+  }
+  const nameResult = registryNameCheck(claim, records);
+  if (nameResult !== null){
+    checks.push(nameResult);
+    if (nameResult.outcome === "fail") corrections[8] = nameResult.note;
+  }
+  let [advResult, advCorrection] = await runAdversarial(client, claim, dossier);
+  advResult = _adversarialNoteFloor(advResult, claim);
+  if (advResult.outcome !== "fail") advCorrection = "";
+  if (advResult.outcome === "fail" && !advResult.evidence.length){
+    advResult = {check_number:9, check_name:"Adversarial pass", outcome:"unsettled",
+      note:"The adversarial pass asserted a contradiction but named no settling source in its evidence; an unnamed kill does not land.",
+      door:"The settling record the attack relied on, named", evidence:[], correction:advResult.correction};
+    advCorrection = "";
+  }
+  checks.push(advResult);
+  advCorrection = _acceptCorrection(claim, advResult, advCorrection);
+  if (advCorrection) corrections[9] = advCorrection;
+  return resolveVerdict(claim, checks, corrections);
+}
+function _failedVerdict(claim, exc){
+  return {claim, verdict:"Held — unverified", checks:[], correction:"",
+    held_reason:"The audit of this claim failed internally (" + (exc.name || "Error") + ": " + exc.message + "); it is Held, not settled. Re-run the audit to settle it."};
+}
+
+/* ---------------- findings + report (src/engine.py) ---------------- */
+function verdictsToDict(verdicts, documentTitle){
+  const counts = {"Verified":0, "Corrected":0, "Held — unverified":0};
+  for (const cv of verdicts) counts[cv.verdict]++;
+  const total = verdicts.length;
+  return {
+    program: "9-Point Hallucination Calibration (9 PHC)",
+    document: documentTitle,
+    summary: {claims: total, verified: counts["Verified"], corrected: counts["Corrected"],
+      held_unverified: counts["Held — unverified"],
+      confidence_percent: total ? Math.round(100 * counts["Verified"] / total) : null},
+    held_queue: verdicts.filter(cv => cv.verdict === "Held — unverified").map(cv => ({
+      claim_id: cv.claim.id, text: cv.claim.text,
+      doors: [...new Set(cv.checks.map(ch => ch.door).filter(Boolean))].sort(),
+      reason: cv.held_reason})),
+    claims: verdicts.map(cv => ({
+      id: cv.claim.id, text: cv.claim.text, verdict: cv.verdict,
+      correction: cv.correction, held_reason: cv.held_reason,
+      checks: cv.checks.map(ch => ({number: ch.check_number, name: ch.check_name, outcome: ch.outcome,
+        note: ch.note, door: ch.door, correction: ch.correction})),
+      receipts: receiptsOf(cv).map(e => ({source: e.source_name, class: e.source_class, detail: e.detail, reference: e.reference}))}))
+  };
+}
+function renderReport(verdicts, documentTitle){
+  const counts = {"Verified":0, "Corrected":0, "Held — unverified":0};
+  for (const cv of verdicts) counts[cv.verdict]++;
+  const lines = [];
+  lines.push("# 9-Point Hallucination Calibration (9 PHC) audit — " + documentTitle);
+  lines.push("");
+  lines.push("**" + verdicts.length + " claims audited.** Verified: " + counts["Verified"] + " · Corrected: " + counts["Corrected"] + " · Held — unverified: " + counts["Held — unverified"]);
+  if (verdicts.length){
+    const conf = Math.round(100 * counts["Verified"] / verdicts.length);
+    lines.push("");
+    lines.push("**Document confidence: " + conf + "%** — the share of claims that verified as written, counted from the verdicts above. A rating of the document, never a guess about a claim: each claim below is Verified, Corrected, or Held, with its receipts.");
+  }
+  lines.push("");
+  lines.push("Tier note: 9 PHC is the third tier of truth constraint — a post-research audit over finished work. Verdicts rest on peer-reviewed sources and primary records only.");
+  lines.push("");
+  if (verdicts.length){
+    lines.push("## Verdict index"); lines.push("");
+    for (const cv of verdicts){
+      let text = cv.claim.text.replace(/\n/g, " ");
+      if (text.length > 90) text = text.slice(0, 87) + "…";
+      lines.push("- Claim " + cv.claim.id + " — **" + cv.verdict + "** — " + text);
+    }
+    lines.push("");
+  }
+  const held = verdicts.filter(cv => cv.verdict === "Held — unverified");
+  if (held.length){
+    lines.push("## Held — the work queue"); lines.push("");
+    lines.push("Each Held claim names the door that would settle it. This queue is the follow-up work, stated plainly — not a shelf.");
+    lines.push("");
+    for (const cv of held){
+      const doors = [...new Set(cv.checks.map(ch => ch.door).filter(Boolean))].sort();
+      lines.push("- Claim " + cv.claim.id + " — door: " + (doors.length ? doors.join("; ") : "see the claim's held reason below"));
+    }
+    lines.push("");
+  }
+  for (const cv of verdicts){
+    const c = cv.claim;
+    lines.push("## Claim " + c.id + " — " + cv.verdict); lines.push("");
+    lines.push("> " + c.text); lines.push("");
+    if (cv.verdict === "Corrected" && cv.correction){ lines.push("**Correction:** " + cv.correction); lines.push(""); }
+    if (cv.verdict === "Held — unverified" && cv.held_reason){ lines.push("**Why held:** " + cv.held_reason); lines.push(""); }
+    if (cv.checks.length){
+      lines.push("Checks:");
+      for (const ch of cv.checks) lines.push("- Check " + ch.check_number + " (" + ch.check_name + "): " + ch.outcome + " — " + ch.note);
+      lines.push("");
+    }
+    const receipts = receiptsOf(cv);
+    if (receipts.length){
+      lines.push("Receipts:");
+      for (const e of receipts) lines.push("- " + e.source_name + " (" + e.source_class + ")" + (e.reference ? " [" + e.reference + "]" : "") + ": " + e.detail);
+      lines.push("");
+    }
+  }
+  return lines.join("\n");
+}
+async function auditDocumentData(client, document, title, userFiles, onClaimDone){
+  const claims = await extractClaims(client, document);
+  const verdictsById = {};
+  const todo = claims.slice();
+  let idx = 0;
+  async function worker(){
+    while (idx < todo.length){
+      const c = todo[idx++];
+      let cv;
+      try { cv = await auditClaim(client, c, userFiles); }
+      catch(e){ cv = _failedVerdict(c, e); }
+      verdictsById[c.id] = cv;
+      if (onClaimDone) onClaimDone(cv);
+    }
+  }
+  await Promise.all([worker(), worker(), worker()]);
+  const verdicts = claims.slice().sort((a, b) => a.id - b.id).map(c => verdictsById[c.id]);
+  const findings = verdictsToDict(verdicts, title);
+  const snap = client.usageSnapshot ? client.usageSnapshot() : {api_calls:0, api_tokens:0};
+  findings.summary.api_calls = snap.api_calls;
+  findings.summary.api_tokens = snap.api_tokens;
+  const manifest = {program: "9-Point Hallucination Calibration (9 PHC)", document_title: title,
+    document_sha256: await sha256Hex(document),
+    audited_at_utc: new Date().toISOString().replace(/\.\d+Z$/, "+00:00"),
+    models: {extraction_and_evidence: MODEL_EXTRACTION, fidelity: MODEL_FIDELITY, adversarial: MODEL_ADVERSARIAL},
+    claims_audited: verdicts.length};
+  findings.manifest = manifest;
+  let report = renderReport(verdicts, title);
+  report += "\n---\n\n**Run manifest** — document SHA-256: `" + manifest.document_sha256 + "` · models: " + MODEL_EXTRACTION + " (extraction, evidence), " + MODEL_FIDELITY + " (fidelity), " + MODEL_ADVERSARIAL + " (adversarial, fresh session) · audited at " + manifest.audited_at_utc + " · Recompute the hash over the audited document to confirm this report is its audit.";
+  return [report, findings];
+}
+
+/* ---------------- UI wiring ---------------- */
+const $ = id => document.getElementById(id);
+const els = {title: $("docTitle"), doc: $("docText"), files: $("ownFiles"), key: $("apiKey"),
+  email: $("contactEmail"), demo: $("demoMode"), run: $("runBtn"), status: $("statusLine"),
+  log: $("progressLog"), results: $("results"), strip: $("summaryStrip"), conf: $("confLine"),
+  held: $("heldQueue"), cards: $("claimCards"), manifest: $("manifestLine")};
+let lastReport = "", lastFindings = null;
+
+const dropHint = $("dropHint"), fileInput = $("fileInput");
+$("filePick").addEventListener("click", e => { e.preventDefault(); fileInput.click(); });
+fileInput.addEventListener("change", () => { if (fileInput.files.length) readFile(fileInput.files[0]); });
+for (const ev of ["dragover", "dragenter"]) dropHint.addEventListener(ev, e => { e.preventDefault(); dropHint.classList.add("over"); });
+for (const ev of ["dragleave", "drop"]) dropHint.addEventListener(ev, e => { e.preventDefault(); dropHint.classList.remove("over"); });
+dropHint.addEventListener("drop", e => { const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) readFile(f); });
+function readFile(f){
+  const reader = new FileReader();
+  reader.onload = () => {
+    els.doc.value = String(reader.result || "");
+    if (!els.title.value || els.title.value === "Audited document")
+      els.title.value = f.name.replace(/\.(md|txt|markdown)$/i, "");
+    logLine("Loaded " + f.name + " (" + els.doc.value.length + " characters).");
+  };
+  reader.readAsText(f);
+}
+function logLine(s){ els.log.textContent += (els.log.textContent ? "\n" : "") + s; els.log.scrollTop = els.log.scrollHeight; }
+function setStatus(s, isErr){ els.status.textContent = s; els.status.className = isErr ? "err" : ""; }
+
+function el(tag, cls, text){ const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
+function renderResults(findings){
+  const s = findings.summary;
+  els.strip.innerHTML = "";
+  for (const [n, l, cls] of [[s.claims, "Claims audited", ""], [s.verified, "Verified", "v"], [s.corrected, "Corrected", "c"], [s.held_unverified, "Held — unverified", "h"], [(s.confidence_percent === null ? "—" : s.confidence_percent + "%"), "Document confidence", ""]]){
+    const d = el("div", "stat " + cls);
+    d.appendChild(el("div", "n", String(n)));
+    d.appendChild(el("div", "l", l));
+    els.strip.appendChild(d);
+  }
+  els.conf.textContent = s.claims
+    ? "Document confidence: " + s.confidence_percent + "% — the share of claims that verified as written, counted from the verdicts. " + s.api_calls + " API calls · " + s.api_tokens.toLocaleString() + " tokens, on your key."
+    : "No claims were extracted from the document.";
+  els.held.innerHTML = "";
+  if (findings.held_queue.length){
+    const h = el("h3", null, "Held — the work queue");
+    h.style.cssText = "color:var(--gold);font-size:.9rem;letter-spacing:2px;text-transform:uppercase;margin:18px 0 8px";
+    els.held.appendChild(h);
+    const p = el("p", "small", "Each Held claim names the door that would settle it. This queue is the follow-up work — not a shelf.");
+    els.held.appendChild(p);
+    for (const q of findings.held_queue)
+      els.held.appendChild(el("p", "small", "Claim " + q.claim_id + " — door: " + (q.doors.length ? q.doors.join("; ") : "see the claim's held reason below")));
+  }
+  els.cards.innerHTML = "";
+  for (const c of findings.claims){
+    const card = el("div", "claim-card");
+    const head = el("div", "claim-head");
+    head.appendChild(el("span", "claim-title", "CLAIM " + c.id));
+    const v = el("span", "verdict " + (c.verdict === "Verified" ? "Verified" : c.verdict === "Corrected" ? "Corrected" : "Held"), c.verdict);
+    head.appendChild(v);
+    card.appendChild(head);
+    card.appendChild(el("div", "claim-text", c.text));
+    if (c.verdict === "Corrected" && c.correction) card.appendChild(el("p", "correction", "Correction: " + c.correction));
+    if (c.verdict.startsWith("Held") && c.held_reason) card.appendChild(el("p", "whyheld", "Why held: " + c.held_reason));
+    if (c.checks.length){
+      const ul = el("ul", "check-list");
+      for (const ch of c.checks){
+        const li = el("li");
+        li.appendChild(el("span", "oc " + ch.outcome, "Check " + ch.number + " · " + ch.outcome + " "));
+        li.appendChild(document.createTextNode("— " + ch.name + ": " + ch.note + (ch.door ? " Door: " + ch.door : "")));
+        ul.appendChild(li);
+      }
+      card.appendChild(ul);
+    }
+    if (c.receipts.length){
+      const r = el("div", "receipts");
+      r.appendChild(el("div", null, "Receipts:"));
+      for (const e of c.receipts)
+        r.appendChild(el("div", null, "• " + e.source + " (" + e.class + ")" + (e.reference ? " [" + e.reference + "]" : "") + ": " + e.detail));
+      card.appendChild(r);
+    }
+    els.cards.appendChild(card);
+  }
+  const m = findings.manifest;
+  els.manifest.textContent = "Run manifest — document SHA-256: " + m.document_sha256 + " · models: " + MODEL_EXTRACTION + " (extraction, evidence), " + MODEL_FIDELITY + " (fidelity), " + MODEL_ADVERSARIAL + " (adversarial, fresh session) · audited at " + m.audited_at_utc + ". Recompute the hash over the audited document to confirm this report is its audit.";
+  els.results.style.display = "block";
+  els.results.scrollIntoView({behavior: "smooth", block: "start"});
+}
+function download(name, text, type){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], {type}));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+$("dlReport").addEventListener("click", () => { if (lastReport) download("9phc-audit.md", lastReport, "text/markdown"); });
+$("dlFindings").addEventListener("click", () => { if (lastFindings) download("9phc-findings.json", JSON.stringify(lastFindings, null, 2), "application/json"); });
+
+els.run.addEventListener("click", async () => {
+  const documentText = els.doc.value;
+  const title = els.title.value.trim() || "Audited document";
+  const userFiles = els.files.value || "";
+  const demo = els.demo.checked;
+  const key = els.key.value.trim();
+  if (!documentText.trim()){ setStatus("Paste a document first — there is nothing to audit.", true); return; }
+  if (!demo && !key){ setStatus("Add your own Meta Model API key, or tick Demo mode. Nothing has been called.", true); return; }
+  MAILTO = els.email.value.trim();
+  const client = demo ? new DemoClient() : new MetaClient(key);
+  els.run.disabled = true;
+  els.log.textContent = "";
+  els.results.style.display = "none";
+  setStatus(demo ? "Running in demo mode — scripted client, no key, no spend." : "Running the calibration — extraction first, then the nine checks per claim.");
+  logLine(demo ? "Demo mode: every model call is answered by the scripted stand-in." : "Calls go from this browser to api.meta.ai on your key, and to the free registries.");
+  const started = Date.now();
+  try {
+    const [report, findings] = await auditDocumentData(client, documentText, title, userFiles, cv => {
+      logLine("Claim " + cv.claim.id + ": " + cv.verdict);
+    });
+    lastReport = report; lastFindings = findings;
+    renderResults(findings);
+    const s = findings.summary;
+    setStatus("Done in " + Math.round((Date.now() - started) / 1000) + "s — " + s.claims + " claims: " + s.verified + " Verified · " + s.corrected + " Corrected · " + s.held_unverified + " Held. " + s.api_calls + " API calls, " + s.api_tokens.toLocaleString() + " tokens" + (demo ? " (demo — nothing spent)." : ", on your key."));
+  } catch(e){
+    setStatus("The run stopped: " + e.message, true);
+    logLine("Stopped plainly rather than auditing half a document in silence.");
+  } finally {
+    els.run.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
