@@ -1,18 +1,11 @@
-# Internal working files — not part of the public build
-HANDOFF.md
-docs/rules-compliance.md
+# Your key file — never commit it
+.env
 
-# Demo answer keys and scoring expectations — held back so the demo stays a fair test
-demo/*-key.md
-demo/*-key-*.md
-demo/*.expectations.json
-
-# Run artifacts
-demo/*.rehearsal.*
-demo/*.dryrun-smoke.md
-demo/live-run*.log
+# Run artifacts (written beside audited documents)
 *.audit.md
 *.audit.json
+*.spend.jsonl
+*.checkpoint.json
 
 # Python
 __pycache__/
