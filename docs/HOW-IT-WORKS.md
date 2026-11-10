@@ -155,11 +155,9 @@ document, so:
 - **Code** — numbers, name spelling, DOI shape, verdict
   resolution, confidence arithmetic, checkpointing, the ledger.
 
-Standard API mode only. The program never sees or stores the API
-key: on the author's machine it reaches the API through a connector
-whose credential lives in a secure vault; on the demo server the
-key is pasted once into a protected setup page and written straight
-to a root-only file the program reads.
+Standard API mode only. The program runs on the operator's own API
+key, read from the META_API_KEY environment variable at call time;
+the key is never written into the repository, a report, or a log.
 
 ## The demo stage
 
