@@ -12,13 +12,18 @@ Held with the door named, upstream in the engine.
 from __future__ import annotations
 
 import json
+import os
 import re
 import urllib.parse
 import urllib.request
 
-_UA = {"User-Agent": "9PHC-audit/0.1 (source retrieval for fact audit; "
-                     "mailto:richardvigslist@nuviratechnologies.io)"}
-_MAILTO = "richardvigslist@nuviratechnologies.io"
+# The registries' polite pools ask callers to identify themselves with
+# a contact address. It is the USER's address, from the environment —
+# never the author's. Set PHC_CONTACT_EMAIL in your .env; with none
+# set, requests go out with a plain identifier and no address.
+_MAILTO = os.environ.get("PHC_CONTACT_EMAIL", "")
+_UA = {"User-Agent": "9PHC-audit/0.1 (source retrieval for fact audit"
+       + (f"; mailto:{_MAILTO})" if _MAILTO else ")")}
 
 TERTIARY_HOSTS = ("wikipedia.org", "wikipedia.com", "fandom.com", "reddit.com")
 
